@@ -70,7 +70,6 @@ const styles = {
 };
 
 const DriversList = ({ drivers, onEdit, onDelete }) => {
-  const [allBuses, setAllBuses] = useState([]);
   const [driverBusMap, setDriverBusMap] = useState({});
 
   // Fetch all buses and find driver assignments
@@ -79,8 +78,6 @@ const DriversList = ({ drivers, onEdit, onDelete }) => {
       try {
         const result = await getAllBuses();
         if (result.buses) {
-          setAllBuses(result.buses);
-          
           // Create a map of driver IDs to their assigned buses
           const busMap = {};
           

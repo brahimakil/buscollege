@@ -143,7 +143,7 @@ export const zIndex = {
 };
 
 // Export all theme variables as default
-export default {
+const themeExport = {
   colors,
   typography,
   spacing,
@@ -152,4 +152,6 @@ export default {
   transitions,
   breakpoints,
   zIndex
-}; 
+};
+
+export default themeExport; 

@@ -11,7 +11,7 @@ import {
   deleteDriver,
   checkDriverBusAssignments
 } from '../services/driverService';
-import { colors, typography, spacing, borderRadius } from '../themes/theme';
+import { colors, spacing } from '../themes/theme';
 
 const Drivers = () => {
   const [drivers, setDrivers] = useState([]);

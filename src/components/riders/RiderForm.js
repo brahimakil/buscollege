@@ -98,7 +98,7 @@ const RiderForm = ({ rider, onSubmit, onCancel }) => {
     ...riderData
   });
   
-  const [buses, setBuses] = useState([]);
+  const [, setBuses] = useState([]);
   const [errors, setErrors] = useState({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   

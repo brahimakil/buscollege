@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { colors, spacing, typography, shadows, borderRadius } from '../../themes/theme';
 
 const styles = {

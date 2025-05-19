@@ -1,142 +1,218 @@
 import React, { useState, useEffect } from "react";
 import MainLayout from "../layouts/MainLayout";
-import { colors, spacing, typography, shadows, borderRadius } from '../themes/theme';
+import { colors, spacing, typography, shadows, borderRadius, breakpoints } from '../themes/theme';
 import { getAllBuses } from "../services/busService";
 import { getAllDrivers } from "../services/driverService";
 import { getAllRiders } from "../services/riderService";
 import { collection, query, orderBy, limit, getDocs, Timestamp } from "firebase/firestore";
 import { db } from "../firebase/config";
 
-const dashboardStyles = {
-  container: {
-    display: 'grid',
-    gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))',
-    gap: spacing.lg,
-    marginBottom: spacing.xl
-  },
-  card: {
-    backgroundColor: colors.background.paper,
-    borderRadius: borderRadius.md,
-    padding: spacing.lg,
-    boxShadow: shadows.sm,
-    transition: '0.3s ease',
-    '&:hover': {
-      boxShadow: shadows.md
+const getDashboardStyles = () => {
+  return {
+    container: {
+      display: 'grid',
+      gridTemplateColumns: '1fr',
+      gap: spacing.md,
+      marginBottom: spacing.lg,
+      [`@media (min-width: ${breakpoints.sm})`]: {
+        gridTemplateColumns: 'repeat(2, 1fr)',
+        gap: spacing.lg,
+      },
+      [`@media (min-width: ${breakpoints.md})`]: {
+        gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))',
+        marginBottom: spacing.xl,
+      },
+    },
+    card: {
+      backgroundColor: colors.background.paper,
+      borderRadius: borderRadius.md,
+      padding: spacing.md,
+      boxShadow: shadows.sm,
+      transition: '0.3s ease',
+      '&:hover': {
+        boxShadow: shadows.md
+      },
+      [`@media (min-width: ${breakpoints.sm})`]: {
+        padding: spacing.lg,
+      },
+    },
+    cardHeader: {
+      display: 'flex',
+      alignItems: 'center',
+      marginBottom: spacing.md
+    },
+    icon: {
+      fontSize: '1.5rem',
+      marginRight: spacing.md,
+      color: colors.primary.main,
+      [`@media (min-width: ${breakpoints.md})`]: {
+        fontSize: '2rem',
+      },
+    },
+    title: {
+      fontSize: typography.h5.fontSize,
+      fontWeight: typography.fontWeightMedium,
+      color: colors.text.primary,
+      margin: 0
+    },
+    value: {
+      fontSize: '1.5rem',
+      fontWeight: typography.fontWeightBold,
+      color: colors.text.primary,
+      margin: `${spacing.sm} 0`,
+      [`@media (min-width: ${breakpoints.md})`]: {
+        fontSize: '2rem',
+      },
+    },
+    subtitle: {
+      fontSize: typography.fontSize * 0.9,
+      color: colors.text.secondary,
+      margin: 0,
+      [`@media (min-width: ${breakpoints.md})`]: {
+        fontSize: typography.fontSize,
+      },
+    },
+    recentActivity: {
+      backgroundColor: colors.background.paper,
+      borderRadius: borderRadius.md,
+      padding: spacing.md,
+      boxShadow: shadows.sm,
+      marginTop: spacing.lg,
+      [`@media (min-width: ${breakpoints.md})`]: {
+        padding: spacing.lg,
+        marginTop: spacing.xl,
+      },
+    },
+    sectionTitle: {
+      fontSize: '1.1rem',
+      fontWeight: typography.fontWeightMedium,
+      color: colors.text.primary,
+      marginBottom: spacing.md,
+      [`@media (min-width: ${breakpoints.md})`]: {
+        fontSize: typography.h5.fontSize,
+        marginBottom: spacing.lg,
+      },
+    },
+    activityItem: {
+      padding: spacing.sm,
+      borderBottom: `1px solid ${colors.border.light}`,
+      display: 'flex',
+      alignItems: 'center',
+      [`@media (min-width: ${breakpoints.md})`]: {
+        padding: spacing.md,
+      },
+    },
+    activityIcon: {
+      width: '32px',
+      height: '32px',
+      borderRadius: borderRadius.round,
+      backgroundColor: colors.primary.light,
+      color: colors.text.light,
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      marginRight: spacing.sm,
+      fontSize: '1rem',
+      [`@media (min-width: ${breakpoints.md})`]: {
+        width: '40px',
+        height: '40px',
+        marginRight: spacing.md,
+        fontSize: '1.2rem',
+      },
+    },
+    activityContent: {
+      flex: 1
+    },
+    activityTitle: {
+      fontSize: '0.9rem',
+      fontWeight: typography.fontWeightMedium,
+      color: colors.text.primary,
+      margin: 0,
+      [`@media (min-width: ${breakpoints.md})`]: {
+        fontSize: typography.fontSize,
+      },
+    },
+    activityTime: {
+      fontSize: '0.75rem',
+      color: colors.text.secondary,
+      margin: 0,
+      [`@media (min-width: ${breakpoints.md})`]: {
+        fontSize: '0.85rem',
+      },
+    },
+    paymentSummary: {
+      backgroundColor: colors.background.paper,
+      borderRadius: borderRadius.md,
+      padding: spacing.md,
+      boxShadow: shadows.sm,
+      marginTop: spacing.lg,
+      [`@media (min-width: ${breakpoints.md})`]: {
+        padding: spacing.lg,
+        marginTop: spacing.xl,
+      },
+    },
+    statusCard: {
+      display: 'flex',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      padding: spacing.sm,
+      backgroundColor: colors.background.default,
+      borderRadius: borderRadius.sm,
+      marginBottom: spacing.sm,
+      [`@media (min-width: ${breakpoints.md})`]: {
+        padding: spacing.md,
+        marginBottom: spacing.md,
+      },
+    },
+    statusLabel: {
+      fontWeight: typography.fontWeightMedium,
+      display: 'flex',
+      alignItems: 'center',
+      fontSize: '0.9rem',
+      [`@media (min-width: ${breakpoints.md})`]: {
+        fontSize: typography.fontSize,
+      },
+    },
+    statusValue: {
+      fontSize: '1rem',
+      fontWeight: typography.fontWeightBold,
+      [`@media (min-width: ${breakpoints.md})`]: {
+        fontSize: '1.2rem',
+      },
+    },
+    statusIcon: {
+      marginRight: spacing.sm,
+      width: '20px',
+      height: '20px',
+      borderRadius: '50%',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      color: colors.text.light,
+      fontSize: '0.7rem',
+      [`@media (min-width: ${breakpoints.md})`]: {
+        width: '24px',
+        height: '24px',
+        fontSize: '0.8rem',
+      },
+    },
+    loadingContainer: {
+      textAlign: 'center',
+      padding: spacing.lg,
+      color: colors.text.secondary,
+      [`@media (min-width: ${breakpoints.md})`]: {
+        padding: spacing.xl,
+      },
+    },
+    pageTitle: {
+      fontSize: '1.5rem',
+      marginBottom: spacing.lg,
+      [`@media (min-width: ${breakpoints.md})`]: {
+        fontSize: typography.h3.fontSize,
+        marginBottom: spacing.xl,
+      },
     }
-  },
-  cardHeader: {
-    display: 'flex',
-    alignItems: 'center',
-    marginBottom: spacing.md
-  },
-  icon: {
-    fontSize: '2rem',
-    marginRight: spacing.md,
-    color: colors.primary.main
-  },
-  title: {
-    fontSize: typography.h5.fontSize,
-    fontWeight: typography.fontWeightMedium,
-    color: colors.text.primary,
-    margin: 0
-  },
-  value: {
-    fontSize: '2rem',
-    fontWeight: typography.fontWeightBold,
-    color: colors.text.primary,
-    margin: `${spacing.sm} 0`
-  },
-  subtitle: {
-    fontSize: typography.fontSize,
-    color: colors.text.secondary,
-    margin: 0
-  },
-  recentActivity: {
-    backgroundColor: colors.background.paper,
-    borderRadius: borderRadius.md,
-    padding: spacing.lg,
-    boxShadow: shadows.sm,
-    marginTop: spacing.xl
-  },
-  sectionTitle: {
-    fontSize: typography.h5.fontSize,
-    fontWeight: typography.fontWeightMedium,
-    color: colors.text.primary,
-    marginBottom: spacing.lg
-  },
-  activityItem: {
-    padding: spacing.md,
-    borderBottom: `1px solid ${colors.border.light}`,
-    display: 'flex',
-    alignItems: 'center'
-  },
-  activityIcon: {
-    width: '40px',
-    height: '40px',
-    borderRadius: borderRadius.round,
-    backgroundColor: colors.primary.light,
-    color: colors.text.light,
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: spacing.md,
-    fontSize: '1.2rem'
-  },
-  activityContent: {
-    flex: 1
-  },
-  activityTitle: {
-    fontSize: typography.fontSize,
-    fontWeight: typography.fontWeightMedium,
-    color: colors.text.primary,
-    margin: 0
-  },
-  activityTime: {
-    fontSize: '0.85rem',
-    color: colors.text.secondary,
-    margin: 0
-  },
-  paymentSummary: {
-    backgroundColor: colors.background.paper,
-    borderRadius: borderRadius.md,
-    padding: spacing.lg,
-    boxShadow: shadows.sm,
-    marginTop: spacing.xl
-  },
-  statusCard: {
-    display: 'flex',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    padding: spacing.md,
-    backgroundColor: colors.background.default,
-    borderRadius: borderRadius.sm,
-    marginBottom: spacing.md
-  },
-  statusLabel: {
-    fontWeight: typography.fontWeightMedium,
-    display: 'flex',
-    alignItems: 'center'
-  },
-  statusValue: {
-    fontSize: '1.2rem',
-    fontWeight: typography.fontWeightBold
-  },
-  statusIcon: {
-    marginRight: spacing.sm,
-    width: '24px',
-    height: '24px',
-    borderRadius: '50%',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    color: colors.text.light,
-    fontSize: '0.8rem'
-  },
-  loadingContainer: {
-    textAlign: 'center',
-    padding: spacing.xl,
-    color: colors.text.secondary
-  }
+  };
 };
 
 const Dashboard = () => {
@@ -153,6 +229,7 @@ const Dashboard = () => {
     unpaid: 0
   });
   const [loading, setLoading] = useState(true);
+  const styles = getDashboardStyles();
 
   // Fetch dashboard data on component mount
   useEffect(() => {
@@ -313,7 +390,7 @@ const Dashboard = () => {
   if (loading) {
     return (
       <MainLayout>
-        <div style={dashboardStyles.loadingContainer}>
+        <div style={styles.loadingContainer}>
           Loading dashboard data...
         </div>
       </MainLayout>
@@ -322,105 +399,105 @@ const Dashboard = () => {
 
   return (
     <MainLayout>
-      <h2 style={{ fontSize: typography.h3.fontSize, marginBottom: spacing.xl }}>
+      <h2 style={styles.pageTitle}>
         Dashboard Overview
       </h2>
       
-      <div style={dashboardStyles.container}>
-        <div style={dashboardStyles.card}>
-          <div style={dashboardStyles.cardHeader}>
-            <span style={dashboardStyles.icon}>🚌</span>
-            <h3 style={dashboardStyles.title}>Total Buses</h3>
+      <div style={styles.container}>
+        <div style={styles.card}>
+          <div style={styles.cardHeader}>
+            <span style={styles.icon}>🚌</span>
+            <h3 style={styles.title}>Total Buses</h3>
           </div>
-          <div style={dashboardStyles.value}>{stats.totalBuses}</div>
-          <p style={dashboardStyles.subtitle}>Active buses in system</p>
+          <div style={styles.value}>{stats.totalBuses}</div>
+          <p style={styles.subtitle}>Active buses in system</p>
         </div>
 
-        <div style={dashboardStyles.card}>
-          <div style={dashboardStyles.cardHeader}>
-            <span style={dashboardStyles.icon}>👨‍✈️</span>
-            <h3 style={dashboardStyles.title}>Total Drivers</h3>
+        <div style={styles.card}>
+          <div style={styles.cardHeader}>
+            <span style={styles.icon}>👨‍✈️</span>
+            <h3 style={styles.title}>Total Drivers</h3>
           </div>
-          <div style={dashboardStyles.value}>{stats.totalDrivers}</div>
-          <p style={dashboardStyles.subtitle}>Registered bus drivers</p>
+          <div style={styles.value}>{stats.totalDrivers}</div>
+          <p style={styles.subtitle}>Registered bus drivers</p>
         </div>
 
-        <div style={dashboardStyles.card}>
-          <div style={dashboardStyles.cardHeader}>
-            <span style={dashboardStyles.icon}>👥</span>
-            <h3 style={dashboardStyles.title}>Total Riders</h3>
+        <div style={styles.card}>
+          <div style={styles.cardHeader}>
+            <span style={styles.icon}>👥</span>
+            <h3 style={styles.title}>Total Riders</h3>
           </div>
-          <div style={dashboardStyles.value}>{stats.totalRiders}</div>
-          <p style={dashboardStyles.subtitle}>Registered passengers</p>
+          <div style={styles.value}>{stats.totalRiders}</div>
+          <p style={styles.subtitle}>Registered passengers</p>
         </div>
 
-        <div style={dashboardStyles.card}>
-            <div style={dashboardStyles.cardHeader}>
-            <span style={dashboardStyles.icon}>🗺️</span>
-            <h3 style={dashboardStyles.title}>Locations</h3>
+        <div style={styles.card}>
+          <div style={styles.cardHeader}>
+            <span style={styles.icon}>🗺️</span>
+            <h3 style={styles.title}>Locations</h3>
           </div>
-          <div style={dashboardStyles.value}>{stats.totalLocations}</div>
-          <p style={dashboardStyles.subtitle}>Bus stop locations</p>
+          <div style={styles.value}>{stats.totalLocations}</div>
+          <p style={styles.subtitle}>Bus stop locations</p>
         </div>
       </div>
       
-      <div style={dashboardStyles.paymentSummary}>
-        <h3 style={dashboardStyles.sectionTitle}>Payment Summary</h3>
+      <div style={styles.paymentSummary}>
+        <h3 style={styles.sectionTitle}>Payment Summary</h3>
         
-        <div style={dashboardStyles.statusCard}>
-          <div style={dashboardStyles.statusLabel}>
+        <div style={styles.statusCard}>
+          <div style={styles.statusLabel}>
             <div style={{
-              ...dashboardStyles.statusIcon,
+              ...styles.statusIcon,
               backgroundColor: colors.status.success
             }}>✓</div>
             Paid Subscriptions
           </div>
           <div style={{
-            ...dashboardStyles.statusValue,
+            ...styles.statusValue,
             color: colors.status.success
           }}>{paymentStats.paid}</div>
         </div>
         
-        <div style={dashboardStyles.statusCard}>
-          <div style={dashboardStyles.statusLabel}>
+        <div style={styles.statusCard}>
+          <div style={styles.statusLabel}>
             <div style={{
-              ...dashboardStyles.statusIcon,
+              ...styles.statusIcon,
               backgroundColor: colors.status.warning
             }}>⌛</div>
             Pending Payments
           </div>
           <div style={{
-            ...dashboardStyles.statusValue,
+            ...styles.statusValue,
             color: colors.status.warning
           }}>{paymentStats.pending}</div>
         </div>
         
-        <div style={dashboardStyles.statusCard}>
-          <div style={dashboardStyles.statusLabel}>
+        <div style={styles.statusCard}>
+          <div style={styles.statusLabel}>
             <div style={{
-              ...dashboardStyles.statusIcon,
+              ...styles.statusIcon,
               backgroundColor: colors.status.error
             }}>!</div>
             Unpaid Subscriptions
-            </div>
+          </div>
           <div style={{
-            ...dashboardStyles.statusValue,
+            ...styles.statusValue,
             color: colors.status.error
           }}>{paymentStats.unpaid}</div>
-          </div>
+        </div>
       </div>
       
-      <div style={dashboardStyles.recentActivity}>
-        <h3 style={dashboardStyles.sectionTitle}>Recent Activity</h3>
+      <div style={styles.recentActivity}>
+        <h3 style={styles.sectionTitle}>Recent Activity</h3>
         
         {activities.length > 0 ? activities.map((activity, index) => (
-          <div key={`${activity.id}-${index}`} style={dashboardStyles.activityItem}>
-            <div style={dashboardStyles.activityIcon}>
+          <div key={`${activity.id}-${index}`} style={styles.activityItem}>
+            <div style={styles.activityIcon}>
               {activity.icon}
             </div>
-            <div style={dashboardStyles.activityContent}>
-              <h4 style={dashboardStyles.activityTitle}>{activity.title}</h4>
-              <p style={dashboardStyles.activityTime}>{activity.formattedTime}</p>
+            <div style={styles.activityContent}>
+              <h4 style={styles.activityTitle}>{activity.title}</h4>
+              <p style={styles.activityTime}>{activity.formattedTime}</p>
             </div>
           </div>
         )) : (

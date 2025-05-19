@@ -9,7 +9,6 @@ import {
   query, 
   where,
   serverTimestamp,
-  Timestamp 
 } from "firebase/firestore";
 import { createUserWithEmailAndPassword } from "firebase/auth";
 import { db, secondaryAuth } from "../firebase/config";

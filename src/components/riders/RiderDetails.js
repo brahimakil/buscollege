@@ -193,7 +193,7 @@ const RiderDetails = ({ rider, onAssignBus, onRemoveBus, onUpdatePayment, onClos
     if (rider) {
       fetchBuses();
     }
-  }, [rider]);
+  }, [rider, fetchBuses]);
   
   const fetchBuses = async () => {
     try {
@@ -404,7 +404,6 @@ const RiderDetails = ({ rider, onAssignBus, onRemoveBus, onUpdatePayment, onClos
                 paymentStatus: 'unpaid',
                 locationId: null
               };
-              const canEdit = !isWithinOperatingHours(bus);
               const locationName = getLocationName(bus, busAssignment.locationId);
               
               return (

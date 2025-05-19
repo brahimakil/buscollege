@@ -1,6 +1,6 @@
 import { colors, spacing, typography, shadows, borderRadius } from '../../themes/theme';
-import { updateBusRiders } from '../../services/busService';
-import { updateRiderBusPaymentStatus, updateRiderBusSubscription } from '../../services/riderService';
+// import { updateBusRiders } from '../../services/busService';
+// import { updateRiderBusPaymentStatus, updateRiderBusSubscription } from '../../services/riderService';
 import React, { useState } from 'react';
 import { toast } from 'react-toastify';
 
