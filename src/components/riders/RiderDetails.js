@@ -181,7 +181,6 @@ const styles = {
 };
 
 const RiderDetails = ({ rider, onAssignBus, onRemoveBus, onUpdatePayment, onClose }) => {
-  const [buses, setBuses] = useState([]);
   const [assignedBuses, setAssignedBuses] = useState([]);
   const [unassignedBuses, setUnassignedBuses] = useState([]);
   const [selectedBus, setSelectedBus] = useState(null);
@@ -297,41 +296,6 @@ const RiderDetails = ({ rider, onAssignBus, onRemoveBus, onUpdatePayment, onClos
   
   if (!rider) return null;
   
-  const getBusAssignment = (busId) => {
-    if (!rider.busAssignments) return { 
-      busId, 
-      subscriptionType: 'none', 
-      paymentStatus: 'unpaid' 
-    };
-    
-    if (Array.isArray(rider.busAssignments)) {
-      if (rider.busAssignments.length > 0 && typeof rider.busAssignments[0] === 'object') {
-        const assignment = rider.busAssignments.find(a => a.busId === busId);
-        return assignment || { 
-          busId, 
-          subscriptionType: 'none', 
-          paymentStatus: 'unpaid' 
-        };
-      } else {
-        return rider.busAssignments.includes(busId) ? { 
-          busId, 
-          subscriptionType: 'none', 
-          paymentStatus: 'unpaid' 
-        } : { 
-          busId, 
-          subscriptionType: 'none', 
-          paymentStatus: 'unpaid' 
-        };
-      }
-    } else {
-      return { 
-        busId, 
-        subscriptionType: 'none', 
-        paymentStatus: 'unpaid' 
-      };
-    }
-  };
-  
   const getLocationName = (bus, locationId) => {
     if (!bus || !bus.locations || !locationId) return "Not selected";
     
@@ -343,12 +307,6 @@ const RiderDetails = ({ rider, onAssignBus, onRemoveBus, onUpdatePayment, onClos
     );
     
     return location ? location.name : "Location data unavailable";
-  };
-  
-  const busAssignment = getBusAssignment(selectedBus.id) || { 
-    subscriptionType: 'none', 
-    paymentStatus: 'unpaid',
-    locationId: null
   };
   
   const canEdit = !isWithinOperatingHours(selectedBus);
@@ -392,12 +350,7 @@ const RiderDetails = ({ rider, onAssignBus, onRemoveBus, onUpdatePayment, onClos
         {assignedBuses.length > 0 ? (
           <div style={styles.busList}>
             {assignedBuses.map(bus => {
-              const busAssignment = getBusAssignment(bus.id) || { 
-                subscriptionType: 'none', 
-                paymentStatus: 'unpaid',
-                locationId: null
-              };
-              const locationName = getLocationName(bus, busAssignment.locationId);
+              const locationName = getLocationName(bus, bus.locationId);
               
               const canEdit = !isWithinOperatingHours(bus);
               if (canEdit) {
@@ -418,25 +371,25 @@ const RiderDetails = ({ rider, onAssignBus, onRemoveBus, onUpdatePayment, onClos
                     }}>
                       <span style={{
                         ...styles.badge,
-                        ...(busAssignment.subscriptionType === 'monthly' ? styles.monthlyBadge : 
-                           busAssignment.subscriptionType === 'per_ride' ? styles.perRideBadge : styles.noneBadge)
+                        ...(bus.subscriptionType === 'monthly' ? styles.monthlyBadge : 
+                           bus.subscriptionType === 'per_ride' ? styles.perRideBadge : styles.noneBadge)
                       }}>
-                        {busAssignment.subscriptionType === 'monthly' ? 'Monthly' : 
-                         busAssignment.subscriptionType === 'per_ride' ? 'Per Ride' : 'None'}
+                        {bus.subscriptionType === 'monthly' ? 'Monthly' : 
+                         bus.subscriptionType === 'per_ride' ? 'Per Ride' : 'None'}
                       </span>
                       
-                      {busAssignment.subscriptionType !== 'none' && (
+                      {bus.subscriptionType !== 'none' && (
                         <span style={{
                           ...styles.badge,
-                          ...(busAssignment.paymentStatus === 'paid' ? styles.paidBadge : 
-                             busAssignment.paymentStatus === 'pending' ? styles.pendingBadge : styles.unpaidBadge)
+                          ...(bus.paymentStatus === 'paid' ? styles.paidBadge : 
+                             bus.paymentStatus === 'pending' ? styles.pendingBadge : styles.unpaidBadge)
                         }}>
-                          {busAssignment.paymentStatus ? busAssignment.paymentStatus.charAt(0).toUpperCase() + busAssignment.paymentStatus.slice(1) : 'Unpaid'}
+                          {bus.paymentStatus ? bus.paymentStatus.charAt(0).toUpperCase() + bus.paymentStatus.slice(1) : 'Unpaid'}
                         </span>
                       )}
                     </div>
                     
-                    {busAssignment.locationId && (
+                    {bus.locationId && (
                       <div style={{marginTop: spacing.xs, fontSize: '0.9rem'}}>
                         <strong>Location:</strong> {locationName || "Unable to find location details"}
                       </div>
@@ -486,7 +439,7 @@ const RiderDetails = ({ rider, onAssignBus, onRemoveBus, onUpdatePayment, onClos
                       Remove
                     </button>
                     
-                    {busAssignment.subscriptionType !== 'none' && (
+                    {bus.subscriptionType !== 'none' && (
                       <div style={{display: 'flex', gap: spacing.xs}}>
                         <button
                           style={{
@@ -497,7 +450,7 @@ const RiderDetails = ({ rider, onAssignBus, onRemoveBus, onUpdatePayment, onClos
                             padding: `${spacing.xs} ${spacing.xs}`
                           }}
                           onClick={() => handleUpdatePayment(bus.id, 'paid')}
-                          disabled={busAssignment.paymentStatus === 'paid'}
+                          disabled={bus.paymentStatus === 'paid'}
                         >
                           Paid
                         </button>
@@ -511,7 +464,7 @@ const RiderDetails = ({ rider, onAssignBus, onRemoveBus, onUpdatePayment, onClos
                             padding: `${spacing.xs} ${spacing.xs}`
                           }}
                           onClick={() => handleUpdatePayment(bus.id, 'pending')}
-                          disabled={busAssignment.paymentStatus === 'pending'}
+                          disabled={bus.paymentStatus === 'pending'}
                         >
                           Pending
                         </button>
@@ -524,7 +477,7 @@ const RiderDetails = ({ rider, onAssignBus, onRemoveBus, onUpdatePayment, onClos
                             padding: `${spacing.xs} ${spacing.xs}`
                           }}
                           onClick={() => handleUpdatePayment(bus.id, 'unpaid')}
-                          disabled={busAssignment.paymentStatus === 'unpaid'}
+                          disabled={bus.paymentStatus === 'unpaid'}
                         >
                           Unpaid
                         </button>
