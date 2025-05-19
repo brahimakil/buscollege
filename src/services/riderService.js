@@ -399,63 +399,62 @@ export const updateRiderBusSubscription = async (riderId, busId, subscriptionTyp
 // Update payment status for a rider on a specific bus
 export const updateRiderBusPaymentStatus = async (riderId, busId, paymentStatus) => {
   try {
-    // Get the bus data
+    const riderDoc = await getDoc(doc(db, "users", riderId));
     const busDoc = await getDoc(doc(db, "buses", busId));
     
-    if (!busDoc.exists()) {
-      return { error: "Bus not found" };
-    }
-    
-    const busData = busDoc.data();
-    const currentRiders = busData.currentRiders || [];
-    
-    // Find the rider in the bus
-    const riderIndex = currentRiders.findIndex(rider => rider.id === riderId);
-    
-    if (riderIndex === -1) {
-      return { error: "Rider is not assigned to this bus" };
-    }
-    
-    // Update rider's payment status in the bus
-    const updatedRiders = [...currentRiders];
-    updatedRiders[riderIndex] = {
-      ...updatedRiders[riderIndex],
-      paymentStatus
-    };
-    
-    // Update bus document
-    await updateDoc(doc(db, "buses", busId), {
-      currentRiders: updatedRiders,
-      updatedAt: serverTimestamp()
-    });
-    
-    // Update rider's busAssignments
-    const riderDoc = await getDoc(doc(db, "users", riderId));
-    
+    // First, update rider's bus assignment payment status
     if (riderDoc.exists()) {
       const riderData = riderDoc.data();
-      const busAssignments = riderData.busAssignments || [];
+      let busAssignments = riderData.busAssignments || [];
       
-      // Find the bus assignment with better type checking
-      const assignmentIndex = busAssignments.findIndex(
-        assignment => typeof assignment === 'object' && assignment.busId === busId
-      );
+      if (Array.isArray(busAssignments)) {
+        // Convert to object format if necessary
+        if (busAssignments.length > 0 && typeof busAssignments[0] !== 'object') {
+          busAssignments = busAssignments.map(id => ({
+            busId: id,
+            subscriptionType: 'per_ride',
+            paymentStatus: id === busId ? paymentStatus : 'unpaid'
+          }));
+        } else {
+          // Update the payment status for the specific bus
+          busAssignments = busAssignments.map(assignment => {
+            if (assignment.busId === busId) {
+              return {
+                ...assignment,
+                paymentStatus,
+                updatedAt: new Date().toISOString()
+              };
+            }
+            return assignment;
+          });
+        }
+        
+        // Update rider document with new payment status
+        await updateDoc(doc(db, "users", riderId), {
+          busAssignments,
+          updatedAt: serverTimestamp()
+        });
+      }
+    }
+    
+    // Now update the bus's currentRiders with the new payment status
+    if (busDoc.exists()) {
+      const busData = busDoc.data();
+      const currentRiders = busData.currentRiders || [];
       
-      if (assignmentIndex !== -1) {
-        const updatedAssignments = [...busAssignments];
-        
-        // Use a standard timestamp string instead of serverTimestamp for array items
-        const timestampString = new Date().toISOString();
-        
-        updatedAssignments[assignmentIndex] = {
-          ...updatedAssignments[assignmentIndex],
-          paymentStatus,
-          updatedAt: timestampString // Use string timestamp instead of serverTimestamp()
+      const riderIndex = currentRiders.findIndex(r => r.id === riderId);
+      if (riderIndex !== -1) {
+        // Update this rider's payment status
+        const updatedRiders = [...currentRiders];
+        updatedRiders[riderIndex] = {
+          ...updatedRiders[riderIndex],
+          paymentStatus
         };
         
-        await updateDoc(doc(db, "users", riderId), {
-          busAssignments: updatedAssignments,
-          updatedAt: serverTimestamp() // This is okay because it's not in an array
+        // Update the bus document
+        await updateDoc(doc(db, "buses", busId), {
+          currentRiders: updatedRiders,
+          updatedAt: serverTimestamp()
         });
       }
     }

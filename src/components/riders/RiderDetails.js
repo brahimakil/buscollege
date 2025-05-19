@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { getBusesForAssignment } from '../../services/riderService';
 import { colors, spacing, typography, borderRadius } from '../../themes/theme';
+import { toast } from 'react-toastify';
 
 // Define styles object
 const styles = {
@@ -232,6 +233,10 @@ const RiderDetails = ({ rider, onAssignBus, onRemoveBus, onUpdatePayment, onClos
   }, [rider, fetchBuses]);
   
   const isWithinOperatingHours = (bus) => {
+    if (!bus) {
+      return false;
+    }
+    
     if (!bus.workingDays || !bus.operatingTimeFrom || !bus.operatingTimeTo) {
       return false;
     }
@@ -288,9 +293,31 @@ const RiderDetails = ({ rider, onAssignBus, onRemoveBus, onUpdatePayment, onClos
     }
   };
   
-  const handleUpdatePayment = (busId, status) => {
+  const handleUpdatePayment = async (busId, status) => {
     if (onUpdatePayment) {
-      onUpdatePayment(rider.id, busId, status);
+      try {
+        await onUpdatePayment(rider.id, busId, status);
+        
+        setAssignedBuses(prevBuses => 
+          prevBuses.map(bus => {
+            if (bus.id === busId) {
+              return {
+                ...bus,
+                paymentStatus: status
+              };
+            }
+            return bus;
+          })
+        );
+        
+        setTimeout(() => {
+          fetchBuses();
+        }, 2000);
+        
+      } catch (error) {
+        console.error("Error updating payment status:", error);
+        toast.error("Failed to update payment status");
+      }
     }
   };
   
@@ -309,8 +336,8 @@ const RiderDetails = ({ rider, onAssignBus, onRemoveBus, onUpdatePayment, onClos
     return location ? location.name : "Location data unavailable";
   };
   
-  const canEdit = !isWithinOperatingHours(selectedBus);
-  if (canEdit) {
+  const canEdit = selectedBus ? !isWithinOperatingHours(selectedBus) : false;
+  if (canEdit && selectedBus) {
     console.log("Bus can be edited", selectedBus.id);
   }
   
@@ -352,8 +379,8 @@ const RiderDetails = ({ rider, onAssignBus, onRemoveBus, onUpdatePayment, onClos
             {assignedBuses.map(bus => {
               const locationName = getLocationName(bus, bus.locationId);
               
-              const canEdit = !isWithinOperatingHours(bus);
-              if (canEdit) {
+              const canEdit = bus ? !isWithinOperatingHours(bus) : false;
+              if (canEdit && bus) {
                 console.log("Bus can be edited", bus.id);
               }
               

@@ -241,11 +241,17 @@ const Buses = () => {
       
       // Update in Firestore based on what's changing
       if (updates.paymentStatus && currentRiders[riderIndex].paymentStatus !== updates.paymentStatus) {
-        await updateRiderBusPaymentStatus(riderId, currentBus.id, updates.paymentStatus);
+        const result = await updateRiderBusPaymentStatus(riderId, currentBus.id, updates.paymentStatus);
+        if (result.error) {
+          throw new Error(result.error);
+        }
       }
       
       if (updates.subscriptionType && currentRiders[riderIndex].subscriptionType !== updates.subscriptionType) {
-        await updateRiderBusSubscription(riderId, currentBus.id, updates.subscriptionType);
+        const result = await updateRiderBusSubscription(riderId, currentBus.id, updates.subscriptionType);
+        if (result.error) {
+          throw new Error(result.error);
+        }
       }
       
       // Update the local state immediately without waiting for a refresh
@@ -260,6 +266,9 @@ const Buses = () => {
       // Update both the buses array and the currentBus
       setBuses(buses.map(bus => bus.id === currentBus.id ? updatedBus : bus));
       setCurrentBus(updatedBus);
+      
+      // Fetch fresh data to ensure everything is in sync
+      setTimeout(() => fetchBuses(), 500);
       
       toast.success("Rider information updated successfully.");
     } catch (error) {

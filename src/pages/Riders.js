@@ -11,7 +11,8 @@ import {
   updateRider,
   deleteRider,
   assignRiderToBus,
-  removeRiderFromBus
+  removeRiderFromBus,
+  updateRiderBusPaymentStatus
 } from '../services/riderService';
 import { colors, typography, spacing, borderRadius } from '../themes/theme';
 
@@ -282,12 +283,10 @@ const Riders = () => {
     if (!rider) return;
     
     try {
-      // Find the rider's bus assignments
-      let busAssignments = rider.busAssignments || [];
-      
-      // If it's already an array of objects, update the specific bus assignment
-      if (Array.isArray(busAssignments) && busAssignments.length > 0 && typeof busAssignments[0] === 'object') {
-        busAssignments = busAssignments.map(assignment => {
+      // First, update the UI optimistically for better user experience
+      const updatedRider = { 
+        ...rider,
+        busAssignments: rider.busAssignments?.map(assignment => {
           if (assignment.busId === busId) {
             return {
               ...assignment,
@@ -295,46 +294,36 @@ const Riders = () => {
             };
           }
           return assignment;
-        });
-      } else if (Array.isArray(busAssignments)) {
-        // Convert from simple array to array of objects
-        busAssignments = busAssignments.map(id => ({
-          busId: id,
-          subscriptionType: 'none',
-          paymentStatus: id === busId ? status : 'unpaid'
-        }));
-      } else {
-        // Initialize as array of objects
-        busAssignments = [{
-          busId,
-          subscriptionType: 'none',
-          paymentStatus: status
-        }];
+        }) || []
+      };
+      
+      // Update local state immediately
+      setRiders(riders.map(r => r.id === riderId ? updatedRider : r));
+      
+      // Also update currentRider if it's the same rider
+      if (currentRider && currentRider.id === riderId) {
+        setCurrentRider(updatedRider);
       }
       
-      // Update the rider in Firestore
-      const result = await updateRider(riderId, {
-        ...rider,
-        busAssignments
-      });
+      // Then perform the actual database update using the dedicated service function
+      // This will update both the rider document and the bus document
+      const result = await updateRiderBusPaymentStatus(riderId, busId, status);
       
       if (result.error) {
         throw new Error(result.error);
       }
       
-      // Update the local state
-      const updatedRider = { 
-        ...rider, 
-        busAssignments 
-      };
-      
-      setRiders(riders.map(r => r.id === riderId ? updatedRider : r));
-      setCurrentRider(updatedRider);
-      
+      // Confirm success to the user
       toast.success(`Payment status updated to: ${status} for bus`);
+      
+      // No need to refresh data - our optimistic update handled the UI
     } catch (error) {
+      // On error, revert the optimistic UI update
       toast.error(`Error: ${error.message}`);
       console.error("Error updating payment status:", error);
+      
+      // Refresh data to revert to correct state
+      fetchRiders();
     }
   };
   
