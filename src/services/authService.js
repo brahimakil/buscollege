@@ -14,18 +14,22 @@ export const registerAdmin = async (email, password, name) => {
     const userCredential = await createUserWithEmailAndPassword(auth, email, password);
     const user = userCredential.user;
     
-    // Add user data with admin role to Firestore
-    await setDoc(doc(db, "users", user.uid), {
-      uid: user.uid,
-      email,
-      name,
-      role: "admin", // Set role as admin
-      createdAt: new Date().toISOString()
-    });
+    // Create admin data in exact format specified
+    const adminData = {
+      createdAt: new Date().toISOString(),
+      email: email,
+      name: name,
+      role: "admin",
+      uid: user.uid
+    };
     
-    return { user };
+    // Add user data with admin role to Firestore
+    await setDoc(doc(db, "users", user.uid), adminData);
+    
+    return { user: adminData };
   } catch (error) {
-    return { error };
+    console.error("Admin registration error:", error);
+    return { error: error.message };
   }
 };
 
