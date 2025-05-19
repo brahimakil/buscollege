@@ -61,8 +61,10 @@ const Riders = () => {
     setIsFormModalOpen(true);
   };
   
-  const handleViewRiderDetails = (rider) => {
-    setCurrentRider(rider);
+  const handleViewDetails = (rider) => {
+    // Always fetch the latest rider data before showing details
+    const latestRider = riders.find(r => r.id === rider.id) || rider;
+    setCurrentRider(latestRider);
     setIsDetailsModalOpen(true);
   };
   
@@ -394,7 +396,7 @@ const Riders = () => {
             riders={riders} 
             onEdit={handleEditRider} 
             onDelete={handleDeleteClick}
-            onViewDetails={handleViewRiderDetails}
+            onViewDetails={handleViewDetails}
           />
         )}
         

@@ -209,7 +209,19 @@ const RiderDetails = ({ rider, onAssignBus, onRemoveBus, onUpdatePayment, onClos
               false;
             
             if (hasAssignment) {
-              assigned.push(bus);
+              let enhancedBus = { ...bus };
+              
+              if (rider.busAssignments && Array.isArray(rider.busAssignments) && 
+                  typeof rider.busAssignments[0] === 'object') {
+                const busAssignment = rider.busAssignments.find(a => a.busId === bus.id);
+                if (busAssignment) {
+                  enhancedBus.paymentStatus = busAssignment.paymentStatus;
+                  enhancedBus.subscriptionType = busAssignment.subscriptionType || 'per_ride';
+                  enhancedBus.locationId = busAssignment.locationId;
+                }
+              }
+              
+              assigned.push(enhancedBus);
             } else {
               if (bus.hasCapacity) {
                 unassigned.push(bus);
@@ -310,9 +322,7 @@ const RiderDetails = ({ rider, onAssignBus, onRemoveBus, onUpdatePayment, onClos
           })
         );
         
-        setTimeout(() => {
-          fetchBuses();
-        }, 2000);
+        toast.success(`Payment status updated to ${status}`);
         
       } catch (error) {
         console.error("Error updating payment status:", error);
