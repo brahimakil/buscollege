@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { getBusesForAssignment } from '../../services/riderService';
 import { colors, spacing, typography, borderRadius } from '../../themes/theme';
 
@@ -189,26 +189,18 @@ const RiderDetails = ({ rider, onAssignBus, onRemoveBus, onUpdatePayment, onClos
   const [subscriptionType, setSubscriptionType] = useState('per_ride');
   const [selectedLocationId, setSelectedLocationId] = useState(null);
   
-  useEffect(() => {
-    if (rider) {
-      fetchBuses();
-    }
-  }, [rider, fetchBuses]);
-  
-  const fetchBuses = async () => {
+  const fetchBuses = useCallback(async () => {
     try {
       const result = await getBusesForAssignment();
       
       if (result.buses) {
-        setBuses(result.buses);
+        const fetchedBuses = result.buses;
         
-        // Separate buses into assigned and unassigned
         if (rider) {
           const assigned = [];
           const unassigned = [];
           
-          result.buses.forEach(bus => {
-            // Check if rider has an assignment for this bus
+          fetchedBuses.forEach(bus => {
             const hasAssignment = rider.busAssignments && 
               Array.isArray(rider.busAssignments) ? 
               (typeof rider.busAssignments[0] === 'object' ?
@@ -219,7 +211,6 @@ const RiderDetails = ({ rider, onAssignBus, onRemoveBus, onUpdatePayment, onClos
             if (hasAssignment) {
               assigned.push(bus);
             } else {
-              // Only add to unassigned if the bus has capacity
               if (bus.hasCapacity) {
                 unassigned.push(bus);
               }
@@ -233,38 +224,39 @@ const RiderDetails = ({ rider, onAssignBus, onRemoveBus, onUpdatePayment, onClos
     } catch (error) {
       console.error("Error fetching buses:", error);
     }
-  };
+  }, [rider]);
+  
+  useEffect(() => {
+    if (rider) {
+      fetchBuses();
+    }
+  }, [rider, fetchBuses]);
   
   const isWithinOperatingHours = (bus) => {
     if (!bus.workingDays || !bus.operatingTimeFrom || !bus.operatingTimeTo) {
-      return false; // If no operating hours are set, editing is allowed
+      return false;
     }
     
-    // Get current date and time
     const now = new Date();
     const currentDay = now.toLocaleDateString('en-US', { weekday: 'lowercase' });
     const currentHour = now.getHours();
     const currentMinute = now.getMinutes();
     
-    // Check if today is a working day
     const isWorkingDay = Array.isArray(bus.workingDays) 
       ? bus.workingDays.includes(currentDay) 
       : bus.workingDays[currentDay] === true;
       
     if (!isWorkingDay) {
-      return false; // Not a working day, editing is allowed
+      return false;
     }
     
-    // Parse operating hours
     const [fromHour, fromMinute] = bus.operatingTimeFrom.split(':').map(Number);
     const [toHour, toMinute] = bus.operatingTimeTo.split(':').map(Number);
     
-    // Convert to minutes for easier comparison
     const currentTimeInMinutes = currentHour * 60 + currentMinute;
     const fromTimeInMinutes = fromHour * 60 + fromMinute;
     const toTimeInMinutes = toHour * 60 + toMinute;
     
-    // Check if current time is within operating hours
     return currentTimeInMinutes >= fromTimeInMinutes && currentTimeInMinutes <= toTimeInMinutes;
   };
   
@@ -272,7 +264,6 @@ const RiderDetails = ({ rider, onAssignBus, onRemoveBus, onUpdatePayment, onClos
     if (!onAssignBus || !selectedBus || !selectedLocationId) return;
     
     try {
-      // Make sure we always have a valid subscription type
       const subType = subscriptionType === 'none' ? 'per_ride' : subscriptionType;
       
       await onAssignBus(rider.id, selectedBus.id, subType, selectedLocationId);
@@ -281,7 +272,6 @@ const RiderDetails = ({ rider, onAssignBus, onRemoveBus, onUpdatePayment, onClos
       setSelectedBus(null);
       setSelectedLocationId(null);
       
-      // Refresh bus lists
       fetchBuses();
     } catch (error) {
       console.error("Error handling bus assignment:", error);
@@ -292,9 +282,7 @@ const RiderDetails = ({ rider, onAssignBus, onRemoveBus, onUpdatePayment, onClos
     if (onRemoveBus) {
       try {
         await onRemoveBus(rider.id, busId);
-        // Refresh bus lists immediately to show updated UI
         await fetchBuses();
-        // No need for toast or confirmation message as requested
       } catch (error) {
         console.error("Error removing bus subscription:", error);
       }
@@ -309,7 +297,6 @@ const RiderDetails = ({ rider, onAssignBus, onRemoveBus, onUpdatePayment, onClos
   
   if (!rider) return null;
   
-  // Find subscription type for each bus assignment
   const getBusAssignment = (busId) => {
     if (!rider.busAssignments) return { 
       busId, 
@@ -318,7 +305,6 @@ const RiderDetails = ({ rider, onAssignBus, onRemoveBus, onUpdatePayment, onClos
     };
     
     if (Array.isArray(rider.busAssignments)) {
-      // If it's an array of objects (new format)
       if (rider.busAssignments.length > 0 && typeof rider.busAssignments[0] === 'object') {
         const assignment = rider.busAssignments.find(a => a.busId === busId);
         return assignment || { 
@@ -327,7 +313,6 @@ const RiderDetails = ({ rider, onAssignBus, onRemoveBus, onUpdatePayment, onClos
           paymentStatus: 'unpaid' 
         };
       } else {
-        // If it's an array of IDs (old format)
         return rider.busAssignments.includes(busId) ? { 
           busId, 
           subscriptionType: 'none', 
@@ -339,7 +324,6 @@ const RiderDetails = ({ rider, onAssignBus, onRemoveBus, onUpdatePayment, onClos
         };
       }
     } else {
-      // If busAssignments is not an array (or is undefined)
       return { 
         busId, 
         subscriptionType: 'none', 
@@ -348,11 +332,9 @@ const RiderDetails = ({ rider, onAssignBus, onRemoveBus, onUpdatePayment, onClos
     }
   };
   
-  // Improve the getLocationName function to handle different location ID formats
   const getLocationName = (bus, locationId) => {
     if (!bus || !bus.locations || !locationId) return "Not selected";
     
-    // Try to find by direct ID match or prefixed format
     const location = bus.locations.find(loc => 
       (loc.id === locationId) || 
       (`loc-${loc.id}` === locationId) ||
@@ -362,6 +344,17 @@ const RiderDetails = ({ rider, onAssignBus, onRemoveBus, onUpdatePayment, onClos
     
     return location ? location.name : "Location data unavailable";
   };
+  
+  const busAssignment = getBusAssignment(selectedBus.id) || { 
+    subscriptionType: 'none', 
+    paymentStatus: 'unpaid',
+    locationId: null
+  };
+  
+  const canEdit = !isWithinOperatingHours(selectedBus);
+  if (canEdit) {
+    console.log("Bus can be edited", selectedBus.id);
+  }
   
   return (
     <div style={styles.container}>
@@ -406,6 +399,11 @@ const RiderDetails = ({ rider, onAssignBus, onRemoveBus, onUpdatePayment, onClos
               };
               const locationName = getLocationName(bus, busAssignment.locationId);
               
+              const canEdit = !isWithinOperatingHours(bus);
+              if (canEdit) {
+                console.log("Bus can be edited", bus.id);
+              }
+              
               return (
                 <div key={bus.id} style={styles.busCard}>
                   <div style={styles.busInfo}>
@@ -438,7 +436,6 @@ const RiderDetails = ({ rider, onAssignBus, onRemoveBus, onUpdatePayment, onClos
                       )}
                     </div>
                     
-                    {/* Show the selected location */}
                     {busAssignment.locationId && (
                       <div style={{marginTop: spacing.xs, fontSize: '0.9rem'}}>
                         <strong>Location:</strong> {locationName || "Unable to find location details"}
@@ -459,7 +456,6 @@ const RiderDetails = ({ rider, onAssignBus, onRemoveBus, onUpdatePayment, onClos
                       <span>{bus.currentRiders}/{bus.maxCapacity}</span>
                     </div>
                     
-                    {/* Show operating times */}
                     <div style={{marginTop: spacing.xs, fontSize: '0.85rem'}}>
                       <strong>Operating:</strong> {bus.operatingTimeFrom} - {bus.operatingTimeTo}
                     </div>
@@ -609,7 +605,6 @@ const RiderDetails = ({ rider, onAssignBus, onRemoveBus, onUpdatePayment, onClos
         </div>
       </div>
       
-      {/* Subscription Type Modal */}
       {showSubscriptionModal && selectedBus && (
         <div style={{
           position: 'fixed',
@@ -639,7 +634,6 @@ const RiderDetails = ({ rider, onAssignBus, onRemoveBus, onUpdatePayment, onClos
               Choose details for {rider.name} on bus {selectedBus.name}:
             </p>
             
-            {/* Location Selection */}
             <div style={{marginBottom: spacing.lg}}>
               <h4 style={{marginBottom: spacing.sm}}>Select Pickup/Dropoff Location:</h4>
               {selectedBus.locations && selectedBus.locations.length > 0 ? (
@@ -686,7 +680,6 @@ const RiderDetails = ({ rider, onAssignBus, onRemoveBus, onUpdatePayment, onClos
               {!selectedLocationId && <div style={styles.error}>Please select a location</div>}
             </div>
             
-            {/* Subscription Type Selection */}
             <div style={{marginBottom: spacing.lg}}>
               <h4 style={{marginBottom: spacing.sm}}>Select Subscription Type:</h4>
               

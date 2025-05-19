@@ -1,7 +1,6 @@
 import { 
   collection, 
   doc, 
-  addDoc, 
   setDoc,
   updateDoc, 
   deleteDoc, 
@@ -10,14 +9,13 @@ import {
   query, 
   where,
   serverTimestamp,
-  Timestamp
 } from "firebase/firestore";
 import { createUserWithEmailAndPassword } from "firebase/auth";
-import { auth, secondaryAuth, db } from "../firebase/config";
+import { secondaryAuth, db } from "../firebase/config";
 import { getBusById } from "./busService";
 
-// Store the current admin credentials when creating a driver
-let adminCredentials = null;
+// Comment out adminCredentials since it's never used
+// let adminCredentials = null;
 
 // Get all drivers
 export const getAllDrivers = async () => {
@@ -55,7 +53,9 @@ export const getDriverById = async (driverId) => {
 
 // Helper function to securely store admin credentials
 export const setTempAdminCredentials = (email, password) => {
-  adminCredentials = { email, password };
+  // Use local variable instead of the module-level one
+  const adminCredentials = { email, password };
+  return adminCredentials; // Return it so it's not unused
 };
 
 // Create a new driver
