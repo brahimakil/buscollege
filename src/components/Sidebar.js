@@ -1,7 +1,7 @@
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
-import { colors, spacing, typography, transitions, shadows } from '../themes/theme';
+import { colors, spacing, typography, shadows } from '../themes/theme';
 
 // Professional SVG Icons
 const icons = {
