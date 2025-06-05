@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { colors, spacing, typography, shadows, borderRadius } from '../../themes/theme';
 import { getAllDriversForSelection } from '../../services/busService';
+import LocationSearchInput from '../ui/LocationSearchInput';
 
 const styles = {
   form: {
@@ -151,6 +152,13 @@ const styles = {
     color: colors.text.light,
     fontWeight: 'bold',
     marginRight: spacing.sm
+  },
+  locationInfo: {
+    marginTop: spacing.xs,
+    padding: spacing.xs,
+    backgroundColor: colors.background.light,
+    borderRadius: borderRadius.xs,
+    border: `1px solid ${colors.border.light}`
   }
 };
 
@@ -315,12 +323,23 @@ const BusForm = ({ bus, onSubmit, onCancel }) => {
   };
 
   // Then modify the handleLocationChange function
-  const handleLocationChange = (index, field, value) => {
+  const handleLocationChange = (index, field, value, locationData = null) => {
     const updatedLocations = [...formData.locations];
     updatedLocations[index] = {
       ...updatedLocations[index],
       [field]: value
     };
+    
+    // If locationData is provided (from location search), add coordinate info
+    if (locationData && field === 'name') {
+      updatedLocations[index] = {
+        ...updatedLocations[index],
+        latitude: locationData.latitude,
+        longitude: locationData.longitude,
+        address: locationData.address,
+        placeId: locationData.id
+      };
+    }
     
     // Validate time intervals if the field is a time field
     if (field === 'arrivalTimeFrom' || field === 'arrivalTimeTo') {
@@ -379,6 +398,30 @@ const BusForm = ({ bus, onSubmit, onCancel }) => {
     });
   };
   
+  const handleLocationSelect = (index, location) => {
+    handleLocationChange(index, 'name', location.shortName || location.name, location);
+    
+    // Clear any previous errors for this location's name field
+    setErrors(prev => {
+      if (!prev.locationErrors || !prev.locationErrors[index]) return prev;
+      
+      const updatedLocationErrors = { ...prev.locationErrors };
+      if (updatedLocationErrors[index]) {
+        delete updatedLocationErrors[index].name;
+        
+        // If no more errors for this location, remove the object
+        if (Object.keys(updatedLocationErrors[index]).length === 0) {
+          delete updatedLocationErrors[index];
+        }
+      }
+      
+      return {
+        ...prev,
+        locationErrors: Object.keys(updatedLocationErrors).length > 0 ? updatedLocationErrors : undefined
+      };
+    });
+  };
+
   const addLocation = () => {
     setFormData({
       ...formData,
@@ -614,17 +657,29 @@ const BusForm = ({ bus, onSubmit, onCancel }) => {
                 <label style={styles.label} htmlFor={`location-${index}-name`}>
                   Location Name
                 </label>
-                <input
-                  type="text"
-                  id={`location-${index}-name`}
+                <LocationSearchInput
                   value={location.name || ''}
-                  onChange={(e) => handleLocationChange(index, 'name', e.target.value)}
-                  style={styles.input}
-                  placeholder="e.g. Tyre, Abbasieh"
+                  onChange={(value) => handleLocationChange(index, 'name', value)}
+                  onLocationSelect={(locationData) => handleLocationSelect(index, locationData)}
+                  placeholder="Search for a location in Lebanon..."
+                  error={errors.locationErrors?.[index]?.name}
                 />
                 {errors.locationErrors?.[index]?.name && 
                   <div style={styles.error}>{errors.locationErrors[index].name}</div>
                 }
+                
+                {/* Display selected location details if available */}
+                {location.latitude && location.longitude && (
+                  <div style={styles.locationInfo}>
+                    <small style={{ color: colors.text.secondary, fontSize: typography.small.fontSize }}>
+                      📍 {location.address?.city && `${location.address.city}, `}
+                      {location.address?.governorate && `${location.address.governorate}, `}
+                      Lebanon
+                      <br />
+                      Coordinates: {location.latitude.toFixed(6)}, {location.longitude.toFixed(6)}
+                    </small>
+                  </div>
+                )}
               </div>
               
               <div style={styles.formGroup}>

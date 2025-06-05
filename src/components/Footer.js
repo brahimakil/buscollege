@@ -13,14 +13,14 @@ const Footer = ({ isMobile }) => {
       position: 'fixed',
       bottom: 0,
       right: 0,
-      left: isMobile ? 0 : '250px', 
+      left: isMobile ? 0 : '280px',
       zIndex: 900,
     }
   };
 
   return (
     <footer style={styles.footer}>
-      <p>&copy; {new Date().getFullYear()} Bus College Administration System. All rights reserved.</p>
+      <p>&copy; {new Date().getFullYear()} BusCollege Administration System. All rights reserved.</p>
     </footer>
   );
 };

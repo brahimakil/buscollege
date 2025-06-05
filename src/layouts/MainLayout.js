@@ -5,13 +5,19 @@ import Footer from '../components/Footer';
 import { colors, spacing, breakpoints } from '../themes/theme';
 
 const MainLayout = ({ children }) => {
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [isMobile, setIsMobile] = useState(false);
   
   // Detect mobile view
   useEffect(() => {
     const checkMobile = () => {
-      setIsMobile(window.innerWidth < parseInt(breakpoints.md));
+      const mobile = window.innerWidth < parseInt(breakpoints.md);
+      setIsMobile(mobile);
+      if (mobile) {
+        setIsSidebarOpen(false);
+      } else {
+        setIsSidebarOpen(true);
+      }
     };
     
     checkMobile(); // Initial check
@@ -22,11 +28,18 @@ const MainLayout = ({ children }) => {
     };
   }, []);
   
-  const toggleMobileMenu = () => {
-    setIsMobileMenuOpen(!isMobileMenuOpen);
+  const toggleSidebar = () => {
+    setIsSidebarOpen(!isSidebarOpen);
   };
   
-  // Fixed styles
+  const closeSidebar = () => {
+    setIsSidebarOpen(false);
+  };
+  
+  // Updated sidebar width
+  const sidebarWidth = '280px';
+  
+  // Fixed styles with proper spacing and dynamic layout
   const containerStyle = {
     display: 'flex',
     minHeight: '100vh',
@@ -34,18 +47,18 @@ const MainLayout = ({ children }) => {
   };
   
   const mainContentStyle = {
-    transition: 'margin-left 0.3s ease',
-    paddingTop: '64px',
+    transition: 'margin-left 0.3s ease, width 0.3s ease',
+    paddingTop: `calc(64px + ${spacing.xl})`, // Space after header
     paddingBottom: '50px',
     backgroundColor: colors.background.default,
     minHeight: 'calc(100vh - 114px)',
-    padding: isMobile ? spacing.md : spacing.xl,
-    width: isMobile ? '100%' : 'calc(100% - 250px)',
-    marginLeft: isMobile ? 0 : '250px',
+    padding: `calc(64px + ${spacing.xl}) ${spacing.xl} 50px ${spacing.xl}`,
+    width: isMobile ? '100%' : (isSidebarOpen ? `calc(100% - ${sidebarWidth})` : '100%'),
+    marginLeft: isMobile ? 0 : (isSidebarOpen ? sidebarWidth : 0),
   };
   
   const overlayStyle = {
-    display: isMobile && isMobileMenuOpen ? 'block' : 'none',
+    display: isMobile && isSidebarOpen ? 'block' : 'none',
     position: 'fixed',
     top: 0,
     left: 0,
@@ -57,13 +70,29 @@ const MainLayout = ({ children }) => {
   
   return (
     <div style={containerStyle}>
-      <Sidebar isOpen={isMobileMenuOpen} onClose={() => setIsMobileMenuOpen(false)} isMobile={isMobile} />
-      <Header onMenuToggle={toggleMobileMenu} isMobile={isMobile} />
-      <div style={overlayStyle} onClick={() => setIsMobileMenuOpen(false)} />
+      <Sidebar 
+        isOpen={isSidebarOpen} 
+        onClose={closeSidebar}
+        isMobile={isMobile}
+      />
+      
+      <Header 
+        onMenuToggle={toggleSidebar}
+        isMobile={isMobile}
+        sidebarOpen={isSidebarOpen}
+      />
+      
       <main style={mainContentStyle}>
         {children}
       </main>
+      
       <Footer isMobile={isMobile} />
+      
+      {/* Mobile overlay */}
+      <div 
+        style={overlayStyle}
+        onClick={closeSidebar}
+      />
     </div>
   );
 };

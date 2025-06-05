@@ -14,7 +14,7 @@ import {
   removeRiderFromBus,
   updateRiderBusPaymentStatus
 } from '../services/riderService';
-import { colors, typography, spacing, borderRadius } from '../themes/theme';
+import { colors, typography, spacing, borderRadius, shadows } from '../themes/theme';
 
 const Riders = () => {
   const [riders, setRiders] = useState([]);
@@ -25,6 +25,148 @@ const Riders = () => {
   const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false);
   const [currentRider, setCurrentRider] = useState(null);
   const [riderToDelete, setRiderToDelete] = useState(null);
+  
+  // Enhanced styles for Riders page
+  const styles = {
+    container: {
+      padding: 0,
+      minHeight: 'calc(100vh - 114px)',
+    },
+    header: {
+      background: `linear-gradient(135deg, ${colors.primary.main} 0%, ${colors.primary.dark} 100%)`,
+      padding: `${spacing.xl} ${spacing.xl} ${spacing.lg} ${spacing.xl}`,
+      marginBottom: spacing.xl,
+      borderRadius: borderRadius.md,
+      boxShadow: shadows.lg,
+      position: 'relative',
+      overflow: 'hidden',
+    },
+    headerOverlay: {
+      position: 'absolute',
+      top: 0,
+      left: 0,
+      right: 0,
+      bottom: 0,
+      background: 'rgba(255, 255, 255, 0.05)',
+      borderRadius: borderRadius.md,
+    },
+    headerContent: {
+      display: 'flex', 
+      justifyContent: 'space-between', 
+      alignItems: 'center',
+      position: 'relative',
+      zIndex: 2,
+    },
+    pageTitle: {
+      fontSize: '2.5rem',
+      fontWeight: typography.fontWeightBold,
+      margin: 0,
+      color: colors.text.light,
+      textShadow: '0 2px 4px rgba(0,0,0,0.3)',
+      display: 'flex',
+      alignItems: 'center',
+      gap: spacing.md,
+    },
+    titleIcon: {
+      fontSize: '2.5rem',
+      filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.3))',
+    },
+    addButton: {
+      backgroundColor: colors.accent.main,
+      color: colors.text.light,
+      border: 'none',
+      padding: `${spacing.md} ${spacing.xl}`,
+      borderRadius: borderRadius.md,
+      cursor: 'pointer',
+      fontWeight: typography.fontWeightBold,
+      fontSize: typography.fontSize,
+      boxShadow: shadows.md,
+      transition: 'all 0.3s ease',
+      display: 'flex',
+      alignItems: 'center',
+      gap: spacing.sm,
+    },
+    errorAlert: {
+      backgroundColor: '#fef2f2',
+      border: `1px solid #fecaca`,
+      color: '#dc2626',
+      padding: spacing.lg,
+      borderRadius: borderRadius.md,
+      marginBottom: spacing.xl,
+      display: 'flex',
+      alignItems: 'center',
+      gap: spacing.md,
+      boxShadow: shadows.sm,
+    },
+    loadingContainer: {
+      textAlign: 'center',
+      padding: `${spacing.xxl} ${spacing.xl}`,
+      backgroundColor: colors.background.paper,
+      borderRadius: borderRadius.md,
+      boxShadow: shadows.sm,
+    },
+    loadingSpinner: {
+      width: '48px',
+      height: '48px',
+      border: `4px solid ${colors.border.light}`,
+      borderTop: `4px solid ${colors.primary.main}`,
+      borderRadius: '50%',
+      animation: 'spin 1s linear infinite',
+      margin: '0 auto',
+      marginBottom: spacing.lg,
+    },
+    loadingText: {
+      fontSize: typography.h5.fontSize,
+      color: colors.text.secondary,
+      fontWeight: typography.fontWeightMedium,
+    },
+    contentArea: {
+      backgroundColor: colors.background.paper,
+      borderRadius: borderRadius.md,
+      boxShadow: shadows.sm,
+      overflow: 'hidden',
+    },
+    deleteModal: {
+      textAlign: 'center',
+      padding: spacing.lg,
+    },
+    deleteIcon: {
+      fontSize: '4rem',
+      color: colors.status.error,
+      marginBottom: spacing.lg,
+    },
+    deleteMessage: {
+      marginBottom: spacing.xl,
+      color: colors.text.primary,
+      fontSize: typography.fontSize,
+      lineHeight: 1.6,
+    },
+    deleteActions: {
+      display: 'flex',
+      justifyContent: 'center',
+      gap: spacing.lg,
+    },
+    cancelButton: {
+      padding: `${spacing.md} ${spacing.xl}`,
+      backgroundColor: colors.border.main,
+      color: colors.text.primary,
+      border: 'none',
+      borderRadius: borderRadius.md,
+      cursor: 'pointer',
+      fontWeight: typography.fontWeightMedium,
+      transition: 'all 0.2s ease',
+    },
+    deleteButton: {
+      padding: `${spacing.md} ${spacing.xl}`,
+      backgroundColor: colors.status.error,
+      color: colors.text.light,
+      border: 'none',
+      borderRadius: borderRadius.md,
+      cursor: 'pointer',
+      fontWeight: typography.fontWeightBold,
+      transition: 'all 0.2s ease',
+    },
+  };
   
   // Fetch riders on component mount
   useEffect(() => {
@@ -41,7 +183,7 @@ const Riders = () => {
       if (result.error) {
         setError(result.error);
       } else {
-        setRiders(result.riders);
+        setRiders(result.riders || []);
       }
     } catch (err) {
       setError('Failed to fetch riders. Please try again later.');

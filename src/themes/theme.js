@@ -83,6 +83,10 @@ export const typography = {
   h6: {
     fontSize: '1rem',
     fontWeight: 500
+  },
+  // Add small text variant
+  small: {
+    fontSize: '0.75rem' // 12px
   }
 };
 
