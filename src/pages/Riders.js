@@ -11,7 +11,7 @@ import {
   updateRider,
   deleteRider,
   assignRiderToBus,
-  unassignRiderFromBus,
+  removeRiderFromBus,
   updateRiderBusPaymentStatus
 } from '../services/riderService';
 import { colors, typography, spacing, borderRadius, shadows } from '../themes/theme';
@@ -98,8 +98,9 @@ const Riders = () => {
           throw new Error(result.error);
         }
         
-        // Refresh the riders list
-        await fetchRiders();
+        // Refresh riders list
+        fetchRiders();
+        
         toast.success("Rider created successfully!");
       }
       
@@ -107,7 +108,7 @@ const Riders = () => {
       setIsFormModalOpen(false);
     } catch (error) {
       toast.error(`Error: ${error.message}`);
-      console.error("Error submitting rider:", error);
+      console.error("Error submitting rider form:", error);
     }
   };
   
@@ -135,17 +136,18 @@ const Riders = () => {
   };
   
   const handleAssignBus = async (riderId, busId, subscriptionType = 'none', locationId = null) => {
-    const rider = riders.find(r => r.id === riderId);
-    
-    if (!rider) return;
-    
     try {
+      const rider = riders.find(r => r.id === riderId);
+      if (!rider) {
+        throw new Error('Rider not found');
+      }
+      
       const result = await assignRiderToBus(
         riderId, 
-        rider.name, 
+        rider.fullName, 
         rider.email, 
-        busId,
-        subscriptionType,
+        busId, 
+        subscriptionType, 
         locationId
       );
       
@@ -153,186 +155,110 @@ const Riders = () => {
         throw new Error(result.error);
       }
       
-      // Update the local state - handle both array and object formats for busAssignments
-      let updatedBusAssignments;
-      let isExistingAssignment = false;
+      // Refresh the riders list to get updated data
+      fetchRiders();
       
-      if (rider.busAssignments && Array.isArray(rider.busAssignments)) {
-        // If it's already an array of objects, check if we need to update existing or add new
-        if (rider.busAssignments.length > 0 && typeof rider.busAssignments[0] === 'object') {
-          // Check if this bus is already assigned (we're editing)
-          const existingAssignmentIndex = rider.busAssignments.findIndex(
-            assignment => assignment.busId === busId
-          );
-          
-          isExistingAssignment = existingAssignmentIndex >= 0;
-          
-          if (isExistingAssignment) {
-            // Update existing assignment
-            updatedBusAssignments = [...rider.busAssignments];
-            updatedBusAssignments[existingAssignmentIndex] = {
-              ...updatedBusAssignments[existingAssignmentIndex],
-              busId,
-              subscriptionType: subscriptionType || 'none',
-              locationId
-            };
-          } else {
-            // Add new assignment
-            updatedBusAssignments = [
-              ...rider.busAssignments, 
-              {
-                busId,
-                subscriptionType: subscriptionType || 'none',
-                paymentStatus: 'unpaid',
-                locationId
-              }
-            ];
-          }
-        } else {
-          // Convert from simple array to array of objects
-          updatedBusAssignments = [
-            ...rider.busAssignments.map(id => ({
-              busId: id,
-              subscriptionType: 'none',
-              paymentStatus: 'unpaid'
-            })),
-            {
-              busId,
-              subscriptionType: subscriptionType || 'none',
-              paymentStatus: 'unpaid',
-              locationId
-            }
-          ];
-        }
-      } else {
-        // Initialize as array of objects
-        updatedBusAssignments = [{
-          busId,
-          subscriptionType: subscriptionType || 'none',
-          paymentStatus: 'unpaid',
-          locationId
-        }];
-      }
-      
-      const updatedRider = { 
-        ...rider, 
-        busAssignments: updatedBusAssignments
-      };
-      
-      setRiders(riders.map(r => r.id === riderId ? updatedRider : r));
-      setCurrentRider(updatedRider);
-      
-      toast.success(`Rider ${isExistingAssignment ? 'updated on' : 'assigned to'} bus with ${subscriptionType} subscription type.`);
-      return true;
+      toast.success("Bus assigned successfully!");
     } catch (error) {
       toast.error(`Error: ${error.message}`);
-      console.error("Error assigning rider to bus:", error);
-      return false;
+      console.error("Error assigning bus:", error);
     }
   };
   
   const handleRemoveBus = async (riderId, busId) => {
-    const rider = riders.find(r => r.id === riderId);
-    
-    if (!rider) return;
-    
     try {
-      const result = await unassignRiderFromBus(riderId, busId);
+      const result = await removeRiderFromBus(riderId, busId);
       
       if (result.error) {
         throw new Error(result.error);
       }
       
-      // Update the local state with correct handling of both data formats
-      let updatedBusAssignments;
+      // Refresh the riders list to get updated data
+      fetchRiders();
       
-      if (rider.busAssignments && Array.isArray(rider.busAssignments)) {
-        // Check if busAssignments is an array of objects or just IDs
-        if (rider.busAssignments.length > 0 && typeof rider.busAssignments[0] === 'object') {
-          // Filter out the assignment with the matching busId
-          updatedBusAssignments = rider.busAssignments.filter(
-            assignment => assignment.busId !== busId
-          );
-        } else {
-          // Handle the old format (array of IDs)
-          updatedBusAssignments = rider.busAssignments.filter(id => id !== busId);
-        }
-      } else {
-        // If busAssignments is not an array or doesn't exist
-        updatedBusAssignments = [];
-      }
-      
-      const updatedRider = { 
-        ...rider, 
-        busAssignments: updatedBusAssignments
-      };
-      
-      setRiders(riders.map(r => r.id === riderId ? updatedRider : r));
-      setCurrentRider(updatedRider);
-      
-      toast.success("Rider removed from bus successfully!");
-      return true;
+      toast.success("Bus removed successfully!");
     } catch (error) {
       toast.error(`Error: ${error.message}`);
-      console.error("Error removing rider from bus:", error);
-      return false;
+      console.error("Error removing bus:", error);
     }
   };
   
   const handleUpdatePaymentForBus = async (riderId, busId, status) => {
-    const rider = riders.find(r => r.id === riderId);
-    
-    if (!rider) return;
-    
     try {
-      // First, update the UI optimistically for better user experience
-      const updatedRider = { 
-        ...rider,
-        busAssignments: rider.busAssignments?.map(assignment => {
-          if (assignment.busId === busId) {
-            return {
-              ...assignment,
-              paymentStatus: status
-            };
-          }
-          return assignment;
-        }) || []
-      };
-      
-      // Update local state immediately
-      setRiders(riders.map(r => r.id === riderId ? updatedRider : r));
-      
-      // Also update currentRider if it's the same rider
-      if (currentRider && currentRider.id === riderId) {
-        setCurrentRider(updatedRider);
-      }
-      
-      // Then perform the actual database update using the dedicated service function
-      // This will update both the rider document and the bus document
       const result = await updateRiderBusPaymentStatus(riderId, busId, status);
       
       if (result.error) {
         throw new Error(result.error);
       }
       
-      // Confirm success to the user
-      toast.success(`Payment status updated to: ${status} for bus`);
+      // Update local state
+      setRiders(riders.map(rider => {
+        if (rider.id === riderId) {
+          const updatedAssignedBuses = (rider.assignedBuses || []).map(bus => {
+            if (bus.busId === busId) {
+              return { ...bus, paymentStatus: status };
+            }
+            return bus;
+          });
+          
+          return { ...rider, assignedBuses: updatedAssignedBuses };
+        }
+        return rider;
+      }));
       
-      // No need to refresh data - our optimistic update handled the UI
+      toast.success("Payment status updated successfully!");
     } catch (error) {
-      // On error, revert the optimistic UI update
       toast.error(`Error: ${error.message}`);
       console.error("Error updating payment status:", error);
-      
-      // Refresh data to revert to correct state
-      fetchRiders();
     }
   };
   
   const handleUpdatePayment = async (riderId, busId, status) => {
-    return handleUpdatePaymentForBus(riderId, busId, status);
+    try {
+      const result = await updateRiderBusPaymentStatus(riderId, busId, status);
+      
+      if (result.error) {
+        throw new Error(result.error);
+      }
+      
+      // Update local state
+      setRiders(riders.map(rider => {
+        if (rider.id === riderId) {
+          const updatedAssignedBuses = (rider.assignedBuses || []).map(bus => {
+            if (bus.busId === busId) {
+              return { ...bus, paymentStatus: status };
+            }
+            return bus;
+          });
+          
+          return { ...rider, assignedBuses: updatedAssignedBuses };
+        }
+        return rider;
+      }));
+      
+      // If currentRider is being displayed in details modal, update it too
+      if (currentRider && currentRider.id === riderId) {
+        const updatedCurrentRider = riders.find(r => r.id === riderId);
+        if (updatedCurrentRider) {
+          setCurrentRider({
+            ...updatedCurrentRider,
+            assignedBuses: (updatedCurrentRider.assignedBuses || []).map(bus => {
+              if (bus.busId === busId) {
+                return { ...bus, paymentStatus: status };
+              }
+              return bus;
+            })
+          });
+        }
+      }
+      
+      toast.success("Payment status updated successfully!");
+    } catch (error) {
+      toast.error(`Error: ${error.message}`);
+      console.error("Error updating payment status:", error);
+    }
   };
-  
+
   return (
     <MainLayout>
       <div style={{ padding: spacing.lg }}>
@@ -344,14 +270,14 @@ const Riders = () => {
           backgroundColor: colors.background.paper,
           padding: spacing.lg,
           borderRadius: borderRadius.md,
-          boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
+          boxShadow: shadows.sm
         }}>
           <h2 style={{ 
             fontSize: typography.h3.fontSize, 
             margin: 0, 
             color: colors.text.primary 
           }}>
-            Rider Management
+            👥 Rider Management
           </h2>
           
           <button 
@@ -395,84 +321,86 @@ const Riders = () => {
           <RidersList 
             riders={riders} 
             onEdit={handleEditRider} 
-            onDelete={handleDeleteClick}
+            onDelete={handleDeleteClick} 
+            onAssignBus={handleAssignBus}
             onViewDetails={handleViewDetails}
           />
         )}
         
-        {/* Create/Edit Rider Modal */}
+        {/* Modals */}
         <Modal
           isOpen={isFormModalOpen}
           onClose={() => setIsFormModalOpen(false)}
-          title={currentRider ? 'Edit Rider' : 'Add New Rider'}
+          title={currentRider ? "Edit Rider" : "Add New Rider"}
+          size="lg"
         >
-          <RiderForm 
-            rider={currentRider} 
+          <RiderForm
+            rider={currentRider}
             onSubmit={handleRiderSubmit}
             onCancel={() => setIsFormModalOpen(false)}
           />
         </Modal>
-        
-        {/* Rider Details Modal */}
-        <Modal
-          isOpen={isDetailsModalOpen}
-          onClose={() => setIsDetailsModalOpen(false)}
-          title="Rider Details"
-          large={true}
-        >
-          {currentRider && (
-            <RiderDetails 
-              rider={currentRider}
-              onAssignBus={handleAssignBus}
-              onRemoveBus={handleRemoveBus}
-              onUpdatePayment={handleUpdatePayment}
-              onClose={() => setIsDetailsModalOpen(false)}
-            />
-          )}
-        </Modal>
-        
-        {/* Delete Confirmation Modal */}
+
         <Modal
           isOpen={isDeleteModalOpen}
           onClose={() => setIsDeleteModalOpen(false)}
           title="Confirm Delete"
+          size="sm"
         >
-          <p style={{ marginBottom: spacing.lg, color: colors.text.primary }}>
-            Are you sure you want to delete the rider <strong>{riderToDelete?.name}</strong>?
-            This action cannot be undone.
-          </p>
-          <div style={{
-            display: 'flex',
-            justifyContent: 'flex-end',
-            gap: spacing.md
-          }}>
-            <button 
-              style={{
-                padding: `${spacing.sm} ${spacing.lg}`,
-                backgroundColor: colors.text.secondary,
-                color: colors.text.light,
-                border: 'none',
-                borderRadius: borderRadius.sm,
-                cursor: 'pointer'
-              }}
-              onClick={() => setIsDeleteModalOpen(false)}
-            >
-              Cancel
-            </button>
-            <button 
-              style={{
-                padding: `${spacing.sm} ${spacing.lg}`,
-                backgroundColor: colors.status.error,
-                color: colors.text.light,
-                border: 'none',
-                borderRadius: borderRadius.sm,
-                cursor: 'pointer'
-              }}
-              onClick={handleDeleteRider}
-            >
-              Delete
-            </button>
+          <div style={{ textAlign: 'center', padding: spacing.lg }}>
+            <div style={{ fontSize: '3rem', marginBottom: spacing.md }}>🗑️</div>
+            <p style={{ marginBottom: spacing.lg, color: colors.text.primary }}>
+              Are you sure you want to delete{' '}
+              <strong>{riderToDelete?.fullName}</strong>?
+              <br />
+              This action cannot be undone.
+            </p>
+            <div style={{ display: 'flex', justifyContent: 'center', gap: spacing.md }}>
+              <button 
+                style={{
+                  padding: `${spacing.sm} ${spacing.lg}`,
+                  backgroundColor: colors.border.main,
+                  color: colors.text.primary,
+                  border: 'none',
+                  borderRadius: borderRadius.sm,
+                  cursor: 'pointer'
+                }}
+                onClick={() => setIsDeleteModalOpen(false)}
+              >
+                Cancel
+              </button>
+              <button 
+                style={{
+                  padding: `${spacing.sm} ${spacing.lg}`,
+                  backgroundColor: colors.status.error,
+                  color: colors.text.light,
+                  border: 'none',
+                  borderRadius: borderRadius.sm,
+                  cursor: 'pointer'
+                }}
+                onClick={handleDeleteRider}
+              >
+                Delete
+              </button>
+            </div>
           </div>
+        </Modal>
+
+        <Modal
+          isOpen={isDetailsModalOpen}
+          onClose={() => setIsDetailsModalOpen(false)}
+          title="Rider Details"
+          size="xl"
+        >
+          {currentRider && (
+            <RiderDetails 
+              rider={currentRider}
+              onUpdatePayment={handleUpdatePayment}
+              onRemoveBus={handleRemoveBus}
+              onAssignBus={handleAssignBus}
+              onClose={() => setIsDetailsModalOpen(false)}
+            />
+          )}
         </Modal>
       </div>
     </MainLayout>
