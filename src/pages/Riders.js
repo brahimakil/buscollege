@@ -183,36 +183,6 @@ const Riders = () => {
     }
   };
   
-  const handleUpdatePaymentForBus = async (riderId, busId, status) => {
-    try {
-      const result = await updateRiderBusPaymentStatus(riderId, busId, status);
-      
-      if (result.error) {
-        throw new Error(result.error);
-      }
-      
-      // Update local state
-      setRiders(riders.map(rider => {
-        if (rider.id === riderId) {
-          const updatedAssignedBuses = (rider.assignedBuses || []).map(bus => {
-            if (bus.busId === busId) {
-              return { ...bus, paymentStatus: status };
-            }
-            return bus;
-          });
-          
-          return { ...rider, assignedBuses: updatedAssignedBuses };
-        }
-        return rider;
-      }));
-      
-      toast.success("Payment status updated successfully!");
-    } catch (error) {
-      toast.error(`Error: ${error.message}`);
-      console.error("Error updating payment status:", error);
-    }
-  };
-  
   const handleUpdatePayment = async (riderId, busId, status) => {
     try {
       const result = await updateRiderBusPaymentStatus(riderId, busId, status);

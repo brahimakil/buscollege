@@ -5,8 +5,6 @@ import { colors, spacing, typography, shadows, borderRadius, breakpoints } from 
 import { getAllBuses } from "../services/busService";
 import { getAllDrivers } from "../services/driverService";
 import { getAllRiders } from "../services/riderService";
-import { collection, query, orderBy, limit, getDocs, Timestamp, where } from "firebase/firestore";
-import { db } from "../firebase/config";
 
 // Custom Chart Components
 const PieChart = ({ data, size = 200 }) => {
