@@ -1,6 +1,6 @@
 import { 
   collection, 
-  doc, 
+  doc,
   setDoc,
   updateDoc, 
   deleteDoc, 
@@ -8,25 +8,80 @@ import {
   getDoc, 
   query, 
   where,
-  serverTimestamp,
+  serverTimestamp
 } from "firebase/firestore";
 import { db } from "../firebase/config";
 
-// Get all buses
+// Completely rewritten getAllBuses function that preserves ALL database values
 export const getAllBuses = async () => {
   try {
-    const busesQuery = query(collection(db, "buses"));
-    const querySnapshot = await getDocs(busesQuery);
-    
+    const busesSnapshot = await getDocs(collection(db, "buses"));
     const buses = [];
-    querySnapshot.forEach((doc) => {
-      buses.push({ id: doc.id, ...doc.data() });
-    });
+    
+    for (const busDoc of busesSnapshot.docs) {
+      const busId = busDoc.id;
+      const busData = busDoc.data();
+      
+      // ONLY USE currentRiders - IGNORE subscribers array
+      const currentRiders = busData.currentRiders || [];
+      
+      // Process current riders to ensure they have complete data
+      const processedRiders = [];
+      
+      for (const rider of currentRiders) {
+        if (typeof rider === 'object' && rider !== null) {
+          processedRiders.push({
+            ...rider,
+            paymentStatus: rider.paymentStatus || 'unpaid',
+            subscriptionType: rider.subscriptionType || 'per_ride'
+          });
+        } else if (typeof rider === 'string') {
+          // This is just a string ID - fetch rider data
+          try {
+            const riderDoc = await getDoc(doc(db, "users", rider));
+            if (riderDoc.exists()) {
+              const riderData = riderDoc.data();
+              processedRiders.push({
+                id: rider,
+                name: riderData.fullName || riderData.name || 'Unknown User',
+                email: riderData.email || 'No email',
+                paymentStatus: 'unpaid', // Default for string-only riders
+                subscriptionType: 'per_ride' // Default for string-only riders
+              });
+            } else {
+              processedRiders.push({
+                id: rider,
+                name: 'Unknown User',
+                email: 'No email available',
+                paymentStatus: 'unpaid',
+                subscriptionType: 'per_ride'
+              });
+            }
+          } catch (error) {
+            console.error(`Error fetching user data for rider ${rider}:`, error);
+            processedRiders.push({
+              id: rider,
+              name: 'Unknown User',
+              email: 'No email available',
+              paymentStatus: 'unpaid',
+              subscriptionType: 'per_ride'
+            });
+          }
+        }
+      }
+      
+      buses.push({ 
+        id: busId, 
+        ...busData,
+        // ONLY INCLUDE currentRiders - IGNORE subscribers
+        currentRiders: processedRiders
+      });
+    }
     
     return { buses };
   } catch (error) {
     console.error("Error getting buses:", error);
-    return { error };
+    return { error: error.message };
   }
 };
 
@@ -339,6 +394,23 @@ export const synchronizeDriverBusAssignments = async () => {
     return { success: true };
   } catch (error) {
     console.error("Error synchronizing driver bus assignments:", error);
+    return { error: error.message };
+  }
+};
+
+// Add a debug function to check what's actually in the database
+export const debugBusRiders = async (busId) => {
+  try {
+    const busDoc = await getDoc(doc(db, "buses", busId));
+    if (busDoc.exists()) {
+      const busData = busDoc.data();
+      console.log("Raw bus data from Firebase:", busData);
+      console.log("Current riders in database:", busData.currentRiders);
+      return { busData: busData };
+    }
+    return { error: "Bus not found" };
+  } catch (error) {
+    console.error("Error debugging bus:", error);
     return { error: error.message };
   }
 }; 

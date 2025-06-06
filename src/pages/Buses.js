@@ -11,7 +11,8 @@ import {
   updateBus,
   deleteBus,
   getAllRidersForSelection,
-  updateBusRiders
+  updateBusRiders,
+  debugBusRiders
 } from '../services/busService';
 import { assignRiderToBus, updateRiderBusPaymentStatus, updateRiderBusSubscription } from '../services/riderService';
 import { colors, typography, spacing, borderRadius } from '../themes/theme';
@@ -160,7 +161,7 @@ const Buses = () => {
     const updatedBus = { ...currentBus };
     const currentRiders = updatedBus.currentRiders || [];
     
-    // Check if we've reached max capacity
+    // Check capacity
     if (currentRiders.length >= updatedBus.maxCapacity) {
       toast.error("Cannot add more riders. Bus is at maximum capacity.");
       return;
@@ -169,8 +170,6 @@ const Buses = () => {
     try {
       const result = await assignRiderToBus(
         rider.id,
-        rider.name,
-        rider.email,
         currentBus.id,
         subscriptionType
       );
@@ -179,7 +178,7 @@ const Buses = () => {
         throw new Error(result.error);
       }
       
-      // Add the rider with subscription type
+      // Add the rider to local state
       const newRider = {
         id: rider.id,
         name: rider.name,
@@ -188,12 +187,11 @@ const Buses = () => {
         paymentStatus: 'unpaid'
       };
       
-      // Update local state
       updatedBus.currentRiders = [...currentRiders, newRider];
       setBuses(buses.map(bus => bus.id === currentBus.id ? updatedBus : bus));
       setCurrentBus(updatedBus);
       
-      toast.success(`${rider.name} has been assigned to this bus with ${subscriptionType === 'monthly' ? 'monthly subscription' : 'per ride payment'}.`);
+      toast.success(`${rider.name} has been assigned to this bus.`);
     } catch (error) {
       toast.error(`Error: ${error.message}`);
       console.error("Error assigning rider:", error);
@@ -228,72 +226,42 @@ const Buses = () => {
     if (!currentBus) return;
     
     try {
-      const updatedBus = { ...currentBus };
-      const currentRiders = updatedBus.currentRiders || [];
+      console.log("Updating rider:", riderId, "with updates:", updates);
       
-      // Find the rider to update - handle both object and string formats
-      const riderIndex = currentRiders.findIndex(rider => {
-        if (typeof rider === 'string') {
-          return rider === riderId;
-        }
-        return rider.id === riderId;
-      });
+      // Update in Firestore first
+      const updatePromises = [];
       
-      if (riderIndex === -1) {
-        toast.error("Rider not found in this bus.");
-        return;
-      }
-      
-      // Get the current rider data
-      const currentRider = currentRiders[riderIndex];
-      
-      // Update in Firestore based on what's changing
       if (updates.paymentStatus) {
-        const currentPaymentStatus = typeof currentRider === 'object' ? currentRider.paymentStatus : 'unpaid';
-        if (currentPaymentStatus !== updates.paymentStatus) {
-          const result = await updateRiderBusPaymentStatus(riderId, currentBus.id, updates.paymentStatus);
-          if (result.error) {
-            throw new Error(result.error);
-          }
-        }
+        console.log("Updating payment status to:", updates.paymentStatus);
+        updatePromises.push(updateRiderBusPaymentStatus(riderId, currentBus.id, updates.paymentStatus));
       }
       
       if (updates.subscriptionType) {
-        const currentSubscriptionType = typeof currentRider === 'object' ? currentRider.subscriptionType : 'per_ride';
-        if (currentSubscriptionType !== updates.subscriptionType) {
-          const result = await updateRiderBusSubscription(riderId, currentBus.id, updates.subscriptionType);
-          if (result.error) {
-            throw new Error(result.error);
-          }
+        console.log("Updating subscription type to:", updates.subscriptionType);
+        updatePromises.push(updateRiderBusSubscription(riderId, currentBus.id, updates.subscriptionType));
+      }
+      
+      // Wait for all updates to complete
+      const results = await Promise.all(updatePromises);
+      console.log("Update results:", results);
+      
+      // Check if any updates failed
+      const failedUpdate = results.find(result => result.error);
+      if (failedUpdate) {
+        throw new Error(failedUpdate.error);
+      }
+      
+      // Fetch fresh data from Firebase
+      const freshBusesResult = await getAllBuses();
+      if (freshBusesResult.buses) {
+        setBuses(freshBusesResult.buses);
+        
+        // Update currentBus with the fresh data
+        const updatedCurrentBus = freshBusesResult.buses.find(bus => bus.id === currentBus.id);
+        if (updatedCurrentBus) {
+          setCurrentBus(updatedCurrentBus);
         }
       }
-      
-      // Update the local state immediately without waiting for a refresh
-      const updatedRiders = [...currentRiders];
-      
-      // Handle updating both string and object formats
-      if (typeof currentRider === 'string') {
-        // If it was just a string ID, convert it to an object
-        updatedRiders[riderIndex] = {
-          id: riderId,
-          ...updates
-        };
-      } else {
-        // If it was already an object, merge the updates
-        updatedRiders[riderIndex] = {
-          ...currentRider,
-          ...updates
-        };
-      }
-      
-      updatedBus.currentRiders = updatedRiders;
-      
-      // Update both the buses array and the currentBus
-      setBuses(buses.map(bus => bus.id === currentBus.id ? updatedBus : bus));
-      setCurrentBus(updatedBus);
-      
-      // Fetch fresh data to ensure everything is in sync
-      setTimeout(() => fetchBuses(), 500);
       
       toast.success("Rider information updated successfully.");
     } catch (error) {

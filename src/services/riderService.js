@@ -9,6 +9,7 @@ import {
   query, 
   where,
   serverTimestamp,
+  Timestamp,
 } from "firebase/firestore";
 import { createUserWithEmailAndPassword } from "firebase/auth";
 import { db, secondaryAuth } from "../firebase/config";
@@ -165,135 +166,84 @@ export const getBusesForAssignment = async () => {
 };
 
 // Update the assignRiderToBus function to simplify subscription types
-export const assignRiderToBus = async (riderId, riderName, riderEmail, busId, subscriptionType = 'per_ride', locationId = null) => {
+export const assignRiderToBus = async (riderId, riderName, riderEmail, busId, subscriptionType, locationId = null) => {
   try {
-    // Get the bus data
-    const busDoc = await getDoc(doc(db, "buses", busId));
+    const busRef = doc(db, "buses", busId);
+    const busSnap = await getDoc(busRef);
     
-    if (!busDoc.exists()) {
+    if (!busSnap.exists()) {
       return { error: "Bus not found" };
     }
     
-    const busData = busDoc.data();
+    const busData = busSnap.data();
     const currentRiders = busData.currentRiders || [];
     
-    // Check if rider is already assigned to this bus
-    const existingRiderIndex = currentRiders.findIndex(rider => rider.id === riderId);
+    // Check if rider is already assigned
+    const isAlreadyAssigned = currentRiders.some(rider => 
+      (typeof rider === 'string' && rider === riderId) || 
+      (typeof rider === 'object' && rider.id === riderId)
+    );
     
-    // Create subscription dates
-    const now = new Date();
-    const startDate = now.toISOString();
-    
-    // Calculate end date based on subscription type
-    let endDate = null;
-    if (subscriptionType === 'per_ride') {
-      // Daily subscription - expires after 24 hours
-      const tomorrow = new Date(now);
-      tomorrow.setDate(tomorrow.getDate() + 1);
-      endDate = tomorrow.toISOString();
-    } else if (subscriptionType === 'monthly') {
-      // Monthly subscription - expires after 30 days
-      const nextMonth = new Date(now);
-      nextMonth.setDate(nextMonth.getDate() + 30);
-      endDate = nextMonth.toISOString();
+    if (isAlreadyAssigned) {
+      return { error: "Rider is already assigned to this bus" };
     }
     
-    // Update bus document based on whether rider is already assigned
-    if (existingRiderIndex >= 0) {
-      // Update existing rider in the bus
-      const updatedRiders = [...currentRiders];
-      updatedRiders[existingRiderIndex] = {
-        ...currentRiders[existingRiderIndex],
-        subscriptionType: subscriptionType || 'per_ride',
+    // Add rider to bus currentRiders
+    const newRiderEntry = {
+      id: riderId,
+      name: riderName,
+      email: riderEmail,
+      subscriptionType: subscriptionType,
+      paymentStatus: 'unpaid',
+      locationId: locationId
+    };
+    
+    const updatedRiders = [...currentRiders, newRiderEntry];
+    
+    // Update bus document
+    await updateDoc(busRef, {
+      currentRiders: updatedRiders,
+      updatedAt: Timestamp.now()
+    });
+    
+    // Add to user collection busAssignments
+    const userRef = doc(db, "users", riderId);
+    const userSnap = await getDoc(userRef);
+    
+    if (userSnap.exists()) {
+      const userData = userSnap.data();
+      const busAssignments = userData.busAssignments || [];
+      
+      // Create new bus assignment
+      const newAssignment = {
+        busId: busId,
+        assignedAt: new Date().toISOString(),
+        subscriptionType: subscriptionType,
+        paymentStatus: 'unpaid',
+        status: 'active',
         locationId: locationId,
-        startDate: startDate,
-        endDate: endDate
+        subscriberName: riderName,
+        subscriberEmail: riderEmail,
+        subscriptionId: `sub_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+        startDate: new Date().toISOString(),
+        ...(subscriptionType === 'monthly' && {
+          endDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString()
+        }),
+        qrCode: JSON.stringify({
+          userId: riderId,
+          busId: busId,
+          subscriptionId: `sub_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+          timestamp: Date.now(),
+          type: "bus_subscription"
+        })
       };
       
-      await updateDoc(doc(db, "buses", busId), {
-        currentRiders: updatedRiders,
+      const updatedAssignments = [...busAssignments, newAssignment];
+      
+      await updateDoc(userRef, {
+        busAssignments: updatedAssignments,
         updatedAt: serverTimestamp()
       });
-    } else {
-      // Check if bus has reached maximum capacity
-      if (currentRiders.length >= busData.maxCapacity) {
-        return { error: "Bus has reached maximum capacity" };
-      }
-      
-      // Add rider to bus with subscription type, location, and dates
-      const updatedRiders = [...currentRiders, {
-        id: riderId,
-        name: riderName,
-        email: riderEmail,
-        subscriptionType: subscriptionType || 'per_ride',
-        paymentStatus: 'unpaid',
-        locationId: locationId,
-        startDate: startDate,
-        endDate: endDate
-      }];
-      
-      await updateDoc(doc(db, "buses", busId), {
-        currentRiders: updatedRiders,
-        updatedAt: serverTimestamp()
-      });
-    }
-    
-    // Add/update bus in rider's busAssignments
-    const riderDoc = await getDoc(doc(db, "users", riderId));
-    
-    if (riderDoc.exists()) {
-      const riderData = riderDoc.data();
-      let busAssignments = riderData.busAssignments || [];
-      
-      // Convert busAssignments to array of objects format if it's not already
-      if (Array.isArray(busAssignments) && busAssignments.length > 0 && typeof busAssignments[0] !== 'object') {
-        busAssignments = busAssignments.map(id => ({
-          busId: id,
-          subscriptionType: 'per_ride',
-          paymentStatus: 'unpaid'
-        }));
-      }
-      
-      // Create a timestamp separately to avoid serverTimestamp in array
-      const now = new Date().toISOString();
-      
-      // Check if bus is already in assignments and update or add
-      const existingAssignmentIndex = busAssignments.findIndex(
-        assignment => typeof assignment === 'object' ? assignment.busId === busId : assignment === busId
-      );
-      
-      if (existingAssignmentIndex >= 0) {
-        // Update existing assignment
-        const updatedAssignments = [...busAssignments];
-        updatedAssignments[existingAssignmentIndex] = {
-          ...busAssignments[existingAssignmentIndex],
-          busId: busId,
-          subscriptionType: subscriptionType || 'per_ride',
-          locationId: locationId,
-          startDate: startDate,
-          endDate: endDate,
-          updatedAt: now
-        };
-        
-        await updateDoc(doc(db, "users", riderId), {
-          busAssignments: updatedAssignments,
-          updatedAt: serverTimestamp()
-        });
-      } else {
-        // Add new assignment
-        await updateDoc(doc(db, "users", riderId), {
-          busAssignments: [...busAssignments, {
-            busId: busId,
-            subscriptionType: subscriptionType || 'per_ride',
-            paymentStatus: 'unpaid',
-            locationId: locationId,
-            startDate: startDate,
-            endDate: endDate,
-            assignedAt: now
-          }],
-          updatedAt: serverTimestamp()
-        });
-      }
     }
     
     return { success: true };
@@ -306,8 +256,9 @@ export const assignRiderToBus = async (riderId, riderName, riderEmail, busId, su
 // Update rider's subscription type for a specific bus
 export const updateRiderBusSubscription = async (riderId, busId, subscriptionType) => {
   try {
-    // Get the bus data
-    const busDoc = await getDoc(doc(db, "buses", busId));
+    // Get the bus document
+    const busRef = doc(db, "buses", busId);
+    const busDoc = await getDoc(busRef);
     
     if (!busDoc.exists()) {
       return { error: "Bus not found" };
@@ -316,160 +267,180 @@ export const updateRiderBusSubscription = async (riderId, busId, subscriptionTyp
     const busData = busDoc.data();
     const currentRiders = busData.currentRiders || [];
     
-    // Find the rider in the bus
-    const riderIndex = currentRiders.findIndex(rider => rider.id === riderId);
+    // Find the rider in currentRiders
+    let riderIndex = -1;
+    
+    // Look for the rider by ID
+    riderIndex = currentRiders.findIndex(rider => {
+      if (typeof rider === 'object' && rider !== null) {
+        return rider.id === riderId;
+      } else if (typeof rider === 'string') {
+        return rider === riderId;
+      }
+      return false;
+    });
     
     if (riderIndex === -1) {
       return { error: "Rider is not assigned to this bus" };
     }
     
-    // Create subscription dates
-    const now = new Date();
-    const startDate = now.toISOString();
+    // Update the rider's subscription type
+    const updatedRiders = [...currentRiders];
+    const currentRider = updatedRiders[riderIndex];
     
-    // Calculate end date based on subscription type
-    let endDate = null;
-    if (subscriptionType === 'per_ride') {
-      // Daily subscription - expires after 24 hours
-      const tomorrow = new Date(now);
-      tomorrow.setDate(tomorrow.getDate() + 1);
-      endDate = tomorrow.toISOString();
-    } else if (subscriptionType === 'monthly') {
-      // Monthly subscription - expires after 30 days
-      const nextMonth = new Date(now);
-      nextMonth.setDate(nextMonth.getDate() + 30);
-      endDate = nextMonth.toISOString();
+    if (typeof currentRider === 'string') {
+      // If it's just a string ID, we need to fetch rider data first
+      try {
+        const riderDoc = await getDoc(doc(db, "users", riderId));
+        if (riderDoc.exists()) {
+          const riderData = riderDoc.data();
+          updatedRiders[riderIndex] = {
+            id: riderId,
+            name: riderData.fullName || riderData.name || 'Unknown User',
+            email: riderData.email || 'No email',
+            paymentStatus: 'unpaid', // Reset payment when changing subscription
+            subscriptionType: subscriptionType
+          };
+        } else {
+          updatedRiders[riderIndex] = {
+            id: riderId,
+            name: 'Unknown User',
+            email: 'No email',
+            paymentStatus: 'unpaid',
+            subscriptionType: subscriptionType
+          };
+        }
+      } catch (error) {
+        console.error("Error fetching rider data:", error);
+        updatedRiders[riderIndex] = {
+          id: riderId,
+          name: 'Unknown User',
+          email: 'No email',
+          paymentStatus: 'unpaid',
+          subscriptionType: subscriptionType
+        };
+      }
+    } else {
+      // Update existing object
+      updatedRiders[riderIndex] = {
+        ...currentRider,
+        subscriptionType: subscriptionType
+      };
     }
     
-    // Update rider's subscription type in the bus
-    const updatedRiders = [...currentRiders];
-    updatedRiders[riderIndex] = {
-      ...updatedRiders[riderIndex],
-      subscriptionType,
-      startDate,
-      endDate
-    };
-    
-    // Update bus document
-    await updateDoc(doc(db, "buses", busId), {
+    // Update the bus document
+    await updateDoc(busRef, {
       currentRiders: updatedRiders,
-      updatedAt: serverTimestamp()
+      updatedAt: Timestamp.now()
     });
     
-    // Update rider's busAssignments
-    const riderDoc = await getDoc(doc(db, "users", riderId));
-    
-    if (riderDoc.exists()) {
-      const riderData = riderDoc.data();
-      const busAssignments = riderData.busAssignments || [];
-      
-      // Find the bus assignment
-      const assignmentIndex = busAssignments.findIndex(
-        assignment => typeof assignment === 'object' && assignment.busId === busId
-      );
-      
-      if (assignmentIndex !== -1) {
-        const updatedAssignments = [...busAssignments];
-        
-        // Use a standard timestamp string instead of serverTimestamp for array items
-        const timestampString = new Date().toISOString();
-        
-        updatedAssignments[assignmentIndex] = {
-          ...updatedAssignments[assignmentIndex],
-          subscriptionType,
-          startDate,
-          endDate,
-          updatedAt: timestampString // Use string timestamp instead of serverTimestamp()
-        };
-        
-        await updateDoc(doc(db, "users", riderId), {
-          busAssignments: updatedAssignments,
-          updatedAt: serverTimestamp() // This is okay because it's not in an array
-        });
-      }
-    }
-    
     return { success: true };
   } catch (error) {
-    console.error("Error updating rider's subscription type:", error);
+    console.error("Error updating rider bus subscription:", error);
     return { error: error.message };
   }
 };
 
-// Update payment status for a rider on a specific bus
+// Update rider's payment status for a specific bus - sync both collections
 export const updateRiderBusPaymentStatus = async (riderId, busId, paymentStatus) => {
   try {
-    const riderDoc = await getDoc(doc(db, "users", riderId));
-    const busDoc = await getDoc(doc(db, "buses", busId));
+    // Update bus collection first
+    const busRef = doc(db, "buses", busId);
+    const busSnap = await getDoc(busRef);
     
-    // First, update rider's bus assignment payment status
-    if (riderDoc.exists()) {
-      const riderData = riderDoc.data();
-      let busAssignments = riderData.busAssignments || [];
-      
-      if (Array.isArray(busAssignments)) {
-        // Convert to object format if necessary
-        if (busAssignments.length > 0 && typeof busAssignments[0] !== 'object') {
-          busAssignments = busAssignments.map(id => ({
-            busId: id,
-            subscriptionType: 'per_ride',
-            paymentStatus: id === busId ? paymentStatus : 'unpaid'
-          }));
-        } else {
-          // Update the payment status for the specific bus
-          busAssignments = busAssignments.map(assignment => {
-            if (assignment.busId === busId) {
-              return {
-                ...assignment,
-                paymentStatus,
-                updatedAt: new Date().toISOString()
-              };
-            }
-            return assignment;
-          });
-        }
-        
-        // Update rider document with new payment status
-        await updateDoc(doc(db, "users", riderId), {
-          busAssignments,
-          updatedAt: serverTimestamp()
-        });
-      }
+    if (!busSnap.exists()) {
+      return { error: "Bus not found" };
     }
     
-    // Now update the bus's currentRiders with the new payment status
-    if (busDoc.exists()) {
-      const busData = busDoc.data();
-      const currentRiders = busData.currentRiders || [];
-      
-      const riderIndex = currentRiders.findIndex(r => r.id === riderId);
-      if (riderIndex !== -1) {
-        // Update this rider's payment status
-        const updatedRiders = [...currentRiders];
+    const busData = busSnap.data();
+    const currentRiders = busData.currentRiders || [];
+    
+    // Find rider index in bus collection
+    const riderIndex = currentRiders.findIndex(r => 
+      (typeof r === 'string' && r === riderId) || 
+      (typeof r === 'object' && r.id === riderId)
+    );
+    
+    if (riderIndex === -1) {
+      return { error: "Rider not found on this bus" };
+    }
+    
+    const currentRider = currentRiders[riderIndex];
+    const updatedRiders = [...currentRiders];
+    
+    if (typeof currentRider === 'string') {
+      try {
+        const riderDoc = await getDoc(doc(db, "users", riderId));
+        if (riderDoc.exists()) {
+          const riderData = riderDoc.data();
+          updatedRiders[riderIndex] = {
+            id: riderId,
+            name: riderData.fullName || riderData.name || 'Unknown User',
+            email: riderData.email || 'No email',
+            paymentStatus: paymentStatus,
+            subscriptionType: 'per_ride'
+          };
+        }
+      } catch (error) {
+        console.error("Error fetching rider data:", error);
         updatedRiders[riderIndex] = {
-          ...updatedRiders[riderIndex],
-          paymentStatus
+          id: riderId,
+          name: 'Unknown User',
+          email: 'No email',
+          paymentStatus: paymentStatus,
+          subscriptionType: 'per_ride'
         };
-        
-        // Update the bus document
-        await updateDoc(doc(db, "buses", busId), {
-          currentRiders: updatedRiders,
-          updatedAt: serverTimestamp()
-        });
       }
+    } else {
+      updatedRiders[riderIndex] = {
+        ...currentRider,
+        paymentStatus: paymentStatus
+      };
+    }
+    
+    // Update bus document
+    await updateDoc(busRef, {
+      currentRiders: updatedRiders,
+      updatedAt: Timestamp.now()
+    });
+    
+    // Update user collection - sync busAssignments
+    const userRef = doc(db, "users", riderId);
+    const userSnap = await getDoc(userRef);
+    
+    if (userSnap.exists()) {
+      const userData = userSnap.data();
+      const busAssignments = userData.busAssignments || [];
+      
+      // Find and update the specific bus assignment
+      const updatedAssignments = busAssignments.map(assignment => {
+        if (assignment.busId === busId) {
+          return {
+            ...assignment,
+            paymentStatus: paymentStatus,
+            updatedAt: new Date().toISOString()
+          };
+        }
+        return assignment;
+      });
+      
+      await updateDoc(userRef, {
+        busAssignments: updatedAssignments,
+        updatedAt: serverTimestamp()
+      });
     }
     
     return { success: true };
   } catch (error) {
-    console.error("Error updating rider's payment status:", error);
+    console.error("Error updating rider payment status:", error);
     return { error: error.message };
   }
 };
 
-// Remove a rider from a bus
+// Remove a rider from a bus - sync both collections
 export const removeRiderFromBus = async (riderId, busId) => {
   try {
-    // Get the bus data
+    // Remove from bus collection
     const busDoc = await getDoc(doc(db, "buses", busId));
     
     if (!busDoc.exists()) {
@@ -479,8 +450,10 @@ export const removeRiderFromBus = async (riderId, busId) => {
     const busData = busDoc.data();
     const currentRiders = busData.currentRiders || [];
     
-    // Remove rider from bus
-    const updatedRiders = currentRiders.filter(rider => rider.id !== riderId);
+    // Remove rider from bus currentRiders
+    const updatedRiders = currentRiders.filter(rider => 
+      (typeof rider === 'object' ? rider.id : rider) !== riderId
+    );
     
     // Update bus document
     await updateDoc(doc(db, "buses", busId), {
@@ -488,28 +461,20 @@ export const removeRiderFromBus = async (riderId, busId) => {
       updatedAt: serverTimestamp()
     });
     
-    // Remove bus from rider's busAssignments
+    // Remove from user collection busAssignments
     const riderDoc = await getDoc(doc(db, "users", riderId));
     
     if (riderDoc.exists()) {
       const riderData = riderDoc.data();
       let busAssignments = riderData.busAssignments || [];
       
-      // Handle different formats of busAssignments
-      if (Array.isArray(busAssignments)) {
-        if (busAssignments.length > 0 && typeof busAssignments[0] === 'object') {
-          // If it's an array of objects (new format)
-          busAssignments = busAssignments.filter(assignment => assignment.busId !== busId);
-        } else {
-          // If it's an array of IDs (old format)
-          busAssignments = busAssignments.filter(id => id !== busId);
-        }
-        
-        await updateDoc(doc(db, "users", riderId), {
-          busAssignments: busAssignments,
-          updatedAt: serverTimestamp()
-        });
-      }
+      // Remove the specific bus assignment
+      busAssignments = busAssignments.filter(assignment => assignment.busId !== busId);
+      
+      await updateDoc(doc(db, "users", riderId), {
+        busAssignments: busAssignments,
+        updatedAt: serverTimestamp()
+      });
     }
     
     return { success: true };

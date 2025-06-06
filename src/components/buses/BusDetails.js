@@ -1,7 +1,7 @@
 import { colors, spacing, typography, shadows, borderRadius } from '../../themes/theme';
 // import { updateBusRiders } from '../../services/busService';
 // import { updateRiderBusPaymentStatus, updateRiderBusSubscription } from '../../services/riderService';
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { toast } from 'react-toastify';
 
 const styles = {
@@ -209,6 +209,97 @@ const styles = {
     color: colors.text.light,
     cursor: 'pointer',
     marginLeft: 'auto'
+  },
+  ridersContainer: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: spacing.md
+  },
+  riderCard: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: spacing.md,
+    backgroundColor: colors.background.default,
+    borderRadius: borderRadius.sm
+  },
+  riderInfo: {
+    flex: 1
+  },
+  riderActions: {
+    display: 'flex',
+    gap: spacing.md
+  },
+  editButton: {
+    padding: `${spacing.xs} ${spacing.sm}`,
+    backgroundColor: colors.secondary.main,
+    color: colors.text.light,
+    border: 'none',
+    borderRadius: borderRadius.sm,
+    cursor: 'pointer'
+  },
+  modalOverlay: {
+    position: 'fixed',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    zIndex: 1000
+  },
+  modal: {
+    backgroundColor: colors.background.paper,
+    padding: spacing.xl,
+    borderRadius: borderRadius.md,
+    width: '400px',
+    maxWidth: '90%'
+  },
+  formGroup: {
+    marginBottom: spacing.lg
+  },
+  select: {
+    padding: spacing.xs,
+    borderRadius: borderRadius.sm,
+    border: `1px solid ${colors.border.main}`,
+    backgroundColor: 'white',
+    fontSize: '0.85rem',
+    marginLeft: spacing.sm
+  },
+  modalActions: {
+    display: 'flex',
+    justifyContent: 'flex-end',
+    gap: spacing.md
+  },
+  cancelButton: {
+    padding: `${spacing.sm} ${spacing.md}`,
+    backgroundColor: colors.text.secondary,
+    color: colors.text.light,
+    border: 'none',
+    borderRadius: borderRadius.sm,
+    cursor: 'pointer'
+  },
+  tabContainer: {
+    display: 'flex',
+    borderBottom: `1px solid ${colors.border}`,
+    marginBottom: spacing.md
+  },
+  tabButton: {
+    padding: `${spacing.sm} ${spacing.md}`,
+    backgroundColor: 'transparent',
+    border: 'none',
+    borderBottom: `2px solid transparent`,
+    cursor: 'pointer',
+    fontSize: '1rem'
+  },
+  activeTab: {
+    borderBottom: `2px solid ${colors.primary.main}`,
+    fontWeight: 'bold'
+  },
+  tabContent: {
+    padding: `${spacing.md} 0`
   }
 };
 
@@ -275,40 +366,37 @@ const getLocationName = (bus, locationId) => {
 };
 
 const BusDetails = ({ 
-  bus, 
+  bus: initialBus, 
   riders, 
-  onAssignRider, 
   onRemoveRider, 
-  onUpdateRider,
+  onUpdateRider, 
   onClose 
 }) => {
+  const [localBus, setLocalBus] = useState(initialBus);
   const [activeTab, setActiveTab] = useState('details');
   
-  // Process currentRiders to handle mixed data types (objects vs strings)
+  // Process current riders to ensure they have complete data
   const processCurrentRiders = (currentRiders, allRiders) => {
-    if (!currentRiders || !Array.isArray(currentRiders)) return [];
-    
     return currentRiders.map(rider => {
       // If it's already a full object with name and email, return as is
-      if (typeof rider === 'object' && rider.name && rider.email) {
+      if (typeof rider === 'object' && rider !== null && rider.name && rider.email) {
         return rider;
       }
       
-      // If it's just a string (user ID), try to find the full rider data
       const riderId = typeof rider === 'string' ? rider : rider.id;
-      const fullRiderData = allRiders?.find(r => r.id === riderId);
+      const riderInfo = allRiders.find(r => r.id === riderId);
       
-      if (fullRiderData) {
-        // Merge the full rider data with any existing subscription info
+      if (riderInfo) {
         return {
           id: riderId,
-          name: fullRiderData.fullName || fullRiderData.name || 'Unknown User',
-          email: fullRiderData.email || 'No email',
-          paymentStatus: (typeof rider === 'object' ? rider.paymentStatus : null) || 'unpaid',
-          subscriptionType: (typeof rider === 'object' ? rider.subscriptionType : null) || 'per_ride',
-          locationId: typeof rider === 'object' ? rider.locationId : null,
-          startDate: typeof rider === 'object' ? rider.startDate : null,
-          endDate: typeof rider === 'object' ? rider.endDate : null
+          name: riderInfo.name,
+          email: riderInfo.email,
+          // PRESERVE existing payment status if available
+          paymentStatus: (typeof rider === 'object' && rider.paymentStatus) ? 
+                        rider.paymentStatus : 
+                        'unpaid',
+          // Remove subscription type editing capability
+          subscriptionType: 'per_ride' // Fixed value
         };
       }
       
@@ -317,98 +405,91 @@ const BusDetails = ({
         id: riderId,
         name: 'Unknown User',
         email: 'No email available',
-        paymentStatus: (typeof rider === 'object' ? rider.paymentStatus : null) || 'unpaid',
-        subscriptionType: (typeof rider === 'object' ? rider.subscriptionType : null) || 'per_ride',
-        locationId: typeof rider === 'object' ? rider.locationId : null,
-        startDate: typeof rider === 'object' ? rider.startDate : null,
-        endDate: typeof rider === 'object' ? rider.endDate : null
+        paymentStatus: (typeof rider === 'object' && rider.paymentStatus) ? 
+                      rider.paymentStatus : 
+                      'unpaid',
+        subscriptionType: 'per_ride' // Fixed value
       };
     });
   };
   
-  const currentRiders = processCurrentRiders(bus.currentRiders || [], riders);
+  const currentRiders = processCurrentRiders(localBus.currentRiders || [], riders);
   const currentRiderIds = currentRiders.map(rider => rider.id);
-  
-  const [riderToAssign, setRiderToAssign] = useState(null);
-  const [subscriptionType, setSubscriptionType] = useState('per_ride');
-  const [showSubscriptionModal, setShowSubscriptionModal] = useState(false);
   
   // State for editing riders
   const [editingRider, setEditingRider] = useState(null);
   const [editedValues, setEditedValues] = useState({
-    paymentStatus: '',
-    subscriptionType: ''
+    paymentStatus: '' // Only payment status remains
   });
-  
-  const handleAssignRider = (rider, subscription) => {
-    if (onAssignRider) {
-      onAssignRider(rider, subscription);
-    }
-  };
-  
-  const handleRemoveRider = (riderId) => {
-    if (onRemoveRider) {
-      onRemoveRider(riderId);
-    }
-  };
-  
+
   // Handler for starting to edit a rider
   const handleEditRider = (rider) => {
     setEditingRider(rider.id);
     setEditedValues({
-      paymentStatus: rider.paymentStatus || 'unpaid',
-      subscriptionType: rider.subscriptionType || 'per_ride'
+      paymentStatus: rider.paymentStatus || 'unpaid'
     });
   };
   
-  // Handler for saving rider changes
-  const handleSaveRiderChanges = async (riderId) => {
+  // Handler for saving rider edits
+  const handleSaveRiderChanges = async () => {
+    if (!editingRider || !onUpdateRider) return;
+    
     try {
-      if (onUpdateRider) {
-        // Use the prop function to update the rider
-        await onUpdateRider(riderId, {
-          paymentStatus: editedValues.paymentStatus,
-          subscriptionType: editedValues.subscriptionType
+      // Only update payment status
+      await onUpdateRider(editingRider, { paymentStatus: editedValues.paymentStatus });
+      
+      // Update local state immediately
+      setLocalBus(prev => {
+        const updatedRiders = (prev.currentRiders || []).map(rider => {
+          if (rider.id === editingRider) {
+            return {
+              ...rider,
+              paymentStatus: editedValues.paymentStatus
+            };
+          }
+          return rider;
         });
         
-        // Reset editing state after successful update
-        setEditingRider(null);
-        setEditedValues({
-          paymentStatus: '',
-          subscriptionType: ''
-        });
-      } else {
-        throw new Error("Update handler not available");
-      }
+        return {
+          ...prev,
+          currentRiders: updatedRiders
+        };
+      });
+      
+      setEditingRider(null);
+      toast.success("Rider payment status updated");
     } catch (error) {
-      toast.error("Failed to update rider: " + error.message);
+      toast.error(`Error updating rider: ${error.message}`);
       console.error("Error updating rider:", error);
     }
   };
-  
-  // Handler for changing edited values
-  const handleEditValueChange = (field, value) => {
-    setEditedValues({
-      ...editedValues,
-      [field]: value
-    });
-  };
-  
-  // Cancel editing
-  const handleCancelEdit = () => {
-    setEditingRider(null);
-    setEditedValues({
-      paymentStatus: '',
-      subscriptionType: ''
-    });
+
+  // Handle rider removal with proper state update
+  const handleRemoveRider = (riderId) => {
+    if (onRemoveRider) {
+      // Call the parent removal function
+      onRemoveRider(riderId);
+      
+      // Update local state immediately
+      setLocalBus(prev => {
+        const updatedRiders = (prev.currentRiders || []).filter(
+          rider => (typeof rider === 'object' ? rider.id : rider) !== riderId
+        );
+        
+        return {
+          ...prev,
+          currentRiders: updatedRiders
+        };
+      });
+    }
   };
   
   return (
     <div style={styles.container}>
       <div style={styles.header}>
         <div>
-          <h2 style={styles.title}>{bus.busName}</h2>
-          {bus.busLabel && <p style={styles.subtitle}>{bus.busLabel}</p>}
+          <h2 style={styles.title}>{localBus.busName}</h2>
+          {localBus.busLabel && <p style={styles.subtitle}>{localBus.busLabel}</p>}
         </div>
         <button 
           style={{
@@ -425,27 +506,30 @@ const BusDetails = ({
         </button>
       </div>
       
-      <div style={styles.tabs}>
-        <div 
+      {/* Add tab navigation */}
+      <div style={styles.tabContainer}>
+        <button 
           style={{
-            ...styles.tab,
+            ...styles.tabButton,
             ...(activeTab === 'details' ? styles.activeTab : {})
           }}
           onClick={() => setActiveTab('details')}
         >
           Bus Details
-        </div>
-        <div 
+        </button>
+        
+        <button 
           style={{
-            ...styles.tab,
+            ...styles.tabButton,
             ...(activeTab === 'riders' ? styles.activeTab : {})
           }}
           onClick={() => setActiveTab('riders')}
         >
-          Manage Riders
-        </div>
+          Riders
+        </button>
       </div>
       
+      {/* Bus Details Tab */}
       {activeTab === 'details' && (
         <>
           <div style={styles.section}>
@@ -453,19 +537,19 @@ const BusDetails = ({
             <div style={styles.grid}>
               <div style={styles.infoItem}>
                 <div style={styles.infoLabel}>Driver</div>
-                <div style={styles.infoValue}>{bus.driverName || 'Unassigned'}</div>
+                <div style={styles.infoValue}>{localBus.driverName || 'Unassigned'}</div>
               </div>
               
               <div style={styles.infoItem}>
                 <div style={styles.infoLabel}>Working Days</div>
-                <div style={styles.infoValue}>{convertWorkingDaysToDisplay(bus.workingDays)}</div>
+                <div style={styles.infoValue}>{convertWorkingDaysToDisplay(localBus.workingDays)}</div>
               </div>
               
               <div style={styles.infoItem}>
                 <div style={styles.infoLabel}>Operating Hours</div>
                 <div style={styles.infoValue}>
-                  {bus.operatingTimeFrom && bus.operatingTimeTo
-                    ? `${formatTime(bus.operatingTimeFrom)} - ${formatTime(bus.operatingTimeTo)}`
+                  {localBus.operatingTimeFrom && localBus.operatingTimeTo
+                    ? `${formatTime(localBus.operatingTimeFrom)} - ${formatTime(localBus.operatingTimeTo)}`
                     : 'Not set'
                   }
                 </div>
@@ -474,8 +558,8 @@ const BusDetails = ({
               <div style={styles.infoItem}>
                 <div style={styles.infoLabel}>Pricing</div>
                 <div style={styles.infoValue}>
-                  <div>Per ride: ${bus.pricePerRide}</div>
-                  <div>Monthly: ${bus.pricePerMonth}</div>
+                  <div>Per ride: ${localBus.pricePerRide}</div>
+                  <div>Monthly: ${localBus.pricePerMonth}</div>
                 </div>
               </div>
             </div>
@@ -489,21 +573,21 @@ const BusDetails = ({
                 <div 
                   style={{
                     ...styles.progressBar,
-                    width: `${(currentRiders.length) / (bus.maxCapacity || 1) * 100}%`,
-                    backgroundColor: getCapacityColor(currentRiders, bus.maxCapacity || 1)
+                    width: `${(currentRiders.length) / (localBus.maxCapacity || 1) * 100}%`,
+                    backgroundColor: getCapacityColor(currentRiders, localBus.maxCapacity || 1)
                   }}
                 />
               </div>
               <span style={styles.capacityText}>
-                {currentRiders.length}/{bus.maxCapacity || 0}
+                {currentRiders.length}/{localBus.maxCapacity || 0}
               </span>
             </div>
           </div>
           
           <div style={styles.section}>
             <h3 style={styles.sectionTitle}>Route Locations</h3>
-            {bus.locations && bus.locations.length > 0 ? (
-              bus.locations.map((location, index) => (
+            {localBus.locations && localBus.locations.length > 0 ? (
+              localBus.locations.map((location, index) => (
                 <div key={index} style={styles.locationCard}>
                   <div style={styles.locationOrder}>{index + 1}</div>
                   <div style={styles.locationInfo}>
@@ -521,286 +605,82 @@ const BusDetails = ({
         </>
       )}
       
+      {/* Riders Tab */}
       {activeTab === 'riders' && (
         <div style={styles.tabContent}>
           <div style={styles.section}>
             <h3 style={styles.sectionTitle}>Current Riders</h3>
-            {currentRiders.length > 0 ? (
-              <div style={styles.riderList}>
-                {currentRiders.map(rider => {
-                  const locationName = getLocationName(bus, rider.locationId);
-                  const isEditing = editingRider === rider.id;
-                  
-                  return (
-                    <div key={rider.id} style={styles.riderItem}>
-                      <div style={{width: '100%'}}>
-                        <div style={{fontWeight: typography.fontWeightMedium}}>{rider.name}</div>
-                        <div style={{fontSize: '0.85rem', color: colors.text.secondary}}>{rider.email}</div>
-                        
-                        {/* Payment and subscription display/edit section */}
-                        {isEditing ? (
-                          <div style={styles.manageRow}>
-                            <div style={styles.managePayment}>
-                              <span>Subscription:</span>
-                              <select 
-                                value={editedValues.subscriptionType}
-                                onChange={(e) => handleEditValueChange('subscriptionType', e.target.value)}
-                                style={styles.subscriptionSelect}
-                              >
-                                <option value="per_ride">Daily (${parseFloat(bus.pricePerRide || 0).toFixed(2)})</option>
-                                <option value="monthly">Monthly (${parseFloat(bus.pricePerMonth || 0).toFixed(2)})</option>
-                              </select>
-                            </div>
-                            
-                            <div style={styles.managePayment}>
-                              <span>Payment Status:</span>
-                              <select 
-                                value={editedValues.paymentStatus}
-                                onChange={(e) => handleEditValueChange('paymentStatus', e.target.value)}
-                                style={styles.paymentSelect}
-                              >
-                                <option value="unpaid">Unpaid</option>
-                                <option value="pending">Pending</option>
-                                <option value="paid">Paid</option>
-                              </select>
-                            </div>
-                            
-                            <div style={{display: 'flex', gap: spacing.sm, justifyContent: 'flex-end', marginTop: spacing.xs}}>
-                              <button 
-                                style={{
-                                  padding: `${spacing.xs} ${spacing.sm}`,
-                                  backgroundColor: colors.text.secondary,
-                                  color: colors.text.light,
-                                  border: 'none',
-                                  borderRadius: borderRadius.sm,
-                                  fontSize: '0.75rem',
-                                  cursor: 'pointer'
-                                }}
-                                onClick={handleCancelEdit}
-                              >
-                                Cancel
-                              </button>
-                              <button 
-                                style={{
-                                  padding: `${spacing.xs} ${spacing.sm}`,
-                                  backgroundColor: colors.secondary.main,
-                                  color: colors.text.light,
-                                  border: 'none',
-                                  borderRadius: borderRadius.sm,
-                                  fontSize: '0.75rem',
-                                  cursor: 'pointer'
-                                }}
-                                onClick={() => handleSaveRiderChanges(rider.id)}
-                              >
-                                Save
-                              </button>
-                            </div>
-                          </div>
-                        ) : (
-                          <div style={{display: 'flex', alignItems: 'center', gap: spacing.md, marginTop: spacing.xs}}>
-                            {/* Subscription badge */}
-                            <span style={{
-                              display: 'inline-block',
-                              padding: `${spacing.xs} ${spacing.sm}`,
-                              borderRadius: borderRadius.sm,
-                              fontSize: '0.8rem',
-                              fontWeight: 'bold',
-                              backgroundColor: rider.subscriptionType === 'monthly' ? colors.status.success : colors.primary.main,
-                              color: '#fff'
-                            }}>
-                              {rider.subscriptionType === 'monthly' ? 'Monthly' : 'Daily'}
-                            </span>
-                            
-                            {/* Payment status badge */}
-                            <span style={{
-                              display: 'inline-block',
-                              padding: `${spacing.xs} ${spacing.sm}`,
-                              borderRadius: borderRadius.sm,
-                              fontSize: '0.8rem',
-                              fontWeight: 'bold',
-                              backgroundColor: rider.paymentStatus === 'paid' ? colors.status.success : 
-                                              rider.paymentStatus === 'pending' ? colors.status.warning : colors.status.error,
-                              color: '#fff'
-                            }}>
-                              {rider.paymentStatus ? rider.paymentStatus.charAt(0).toUpperCase() + rider.paymentStatus.slice(1) : 'Unpaid'}
-                            </span>
-                            
-                            {/* Edit button */}
-                            <button
-                              style={{
-                                padding: `${spacing.xs} ${spacing.sm}`,
-                                backgroundColor: colors.secondary.main,
-                                color: colors.text.light,
-                                border: 'none',
-                                borderRadius: borderRadius.sm,
-                                fontSize: '0.75rem',
-                                cursor: 'pointer',
-                                marginLeft: 'auto'
-                              }}
-                              onClick={() => handleEditRider(rider)}
-                            >
-                              Edit Payment
-                            </button>
-                          </div>
-                        )}
-                        
-                        {/* Location information */}
-                        {rider.locationId && (
-                          <div style={{marginTop: spacing.xs, fontSize: '0.85rem'}}>
-                            <strong>Location:</strong> {locationName}
-                          </div>
-                        )}
-                      </div>
+            
+            {currentRiders.length === 0 ? (
+              <p>No riders assigned to this bus</p>
+            ) : (
+              <div style={styles.ridersContainer}>
+                {currentRiders.map(rider => (
+                  <div key={rider.id} style={styles.riderCard}>
+                    <div style={styles.riderInfo}>
+                      <h4>{rider.name}</h4>
+                      <p>{rider.email}</p>
+                      <p>Payment: {rider.paymentStatus}</p>
+                    </div>
+                    
+                    <div style={styles.riderActions}>
+                      <button 
+                        style={styles.editButton}
+                        onClick={() => handleEditRider(rider)}
+                      >
+                        Edit
+                      </button>
                       
-                      <button
-                        style={{...styles.actionButton, ...styles.removeButton}}
+                      <button 
+                        style={styles.removeButton}
                         onClick={() => handleRemoveRider(rider.id)}
                       >
                         Remove
                       </button>
                     </div>
-                  );
-                })}
+                  </div>
+                ))}
               </div>
-            ) : (
-              <p>No riders currently assigned to this bus.</p>
             )}
-          </div>
-          
-          <div style={styles.section}>
-            <h3 style={styles.sectionTitle}>Available Riders</h3>
-            <div style={styles.riderList}>
-              {riders && riders.length > 0 ? (
-                riders
-                  .filter(rider => !currentRiderIds.includes(rider.id))
-                  .map(rider => (
-                    <div key={rider.id} style={styles.riderItem}>
-                      <div>
-                        <div style={{fontWeight: typography.fontWeightMedium}}>{rider.name}</div>
-                        <div style={{fontSize: '0.85rem', color: colors.text.secondary}}>{rider.email}</div>
-                      </div>
-                      <button
-                        style={{...styles.actionButton, ...styles.assignButton}}
-                        onClick={() => {
-                          setRiderToAssign(rider);
-                          setShowSubscriptionModal(true);
-                        }}
-                        disabled={currentRiders.length >= bus.maxCapacity}
-                      >
-                        Assign
-                      </button>
-                    </div>
-                  ))
-              ) : (
-                <p>No available riders to assign.</p>
-              )}
-            </div>
           </div>
         </div>
       )}
       
-      {/* Subscription Type Modal */}
-      {showSubscriptionModal && riderToAssign && (
-        <div style={{
-          position: 'fixed',
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          backgroundColor: 'rgba(0,0,0,0.5)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          zIndex: 1000
-        }}>
-          <div style={{
-            backgroundColor: colors.background.paper,
-            padding: spacing.xl,
-            borderRadius: borderRadius.md,
-            width: '400px',
-            maxWidth: '90%'
-          }}>
-            <h3 style={{marginTop: 0}}>Select Subscription Type</h3>
-            <p>Choose a subscription type for <strong>{riderToAssign.name}</strong>:</p>
+      {/* Edit Rider Modal */}
+      {editingRider && (
+        <div style={styles.modalOverlay}>
+          <div style={styles.modal}>
+            <h3>Edit Rider</h3>
             
-            <div style={{marginBottom: spacing.lg}}>
-              <label style={{
-                display: 'block',
-                marginBottom: spacing.sm,
-                cursor: 'pointer',
-                padding: spacing.sm,
-                border: `1px solid ${subscriptionType === 'per_ride' ? colors.primary.main : colors.border.main}`,
-                borderRadius: borderRadius.sm,
-                backgroundColor: subscriptionType === 'per_ride' ? colors.primary.light : 'transparent'
-              }}>
-                <input
-                  type="radio"
-                  name="subscriptionType"
-                  value="per_ride"
-                  checked={subscriptionType === 'per_ride'}
-                  onChange={() => setSubscriptionType('per_ride')}
-                  style={{marginRight: spacing.sm}}
-                />
-                Daily (${parseFloat(bus.pricePerRide || 0).toFixed(2)} per day)
-              </label>
-              
-              <label style={{
-                display: 'block',
-                cursor: 'pointer',
-                padding: spacing.sm,
-                border: `1px solid ${subscriptionType === 'monthly' ? colors.primary.main : colors.border.main}`,
-                borderRadius: borderRadius.sm,
-                backgroundColor: subscriptionType === 'monthly' ? colors.primary.light : 'transparent'
-              }}>
-                <input
-                  type="radio"
-                  name="subscriptionType"
-                  value="monthly"
-                  checked={subscriptionType === 'monthly'}
-                  onChange={() => setSubscriptionType('monthly')}
-                  style={{marginRight: spacing.sm}}
-                />
-                Monthly Subscription (${parseFloat(bus.pricePerMonth || 0).toFixed(2)} per month)
-              </label>
+            <div style={styles.formGroup}>
+              <label>Payment Status:</label>
+              <select
+                value={editedValues.paymentStatus}
+                onChange={(e) => setEditedValues(prev => ({
+                  ...prev,
+                  paymentStatus: e.target.value
+                }))}
+                style={styles.select}
+              >
+                <option value="unpaid">Unpaid</option>
+                <option value="pending">Pending</option>
+                <option value="paid">Paid</option>
+              </select>
             </div>
             
-            <div style={{
-              display: 'flex',
-              justifyContent: 'flex-end',
-              gap: spacing.md
-            }}>
-              <button
-                style={{
-                  padding: `${spacing.sm} ${spacing.md}`,
-                  backgroundColor: colors.text.secondary,
-                  color: colors.text.light,
-                  border: 'none',
-                  borderRadius: borderRadius.sm,
-                  cursor: 'pointer'
-                }}
-                onClick={() => {
-                  setShowSubscriptionModal(false);
-                  setRiderToAssign(null);
-                }}
+            <div style={styles.modalActions}>
+              <button 
+                style={styles.cancelButton}
+                onClick={() => setEditingRider(null)}
               >
                 Cancel
               </button>
-              <button
-                style={{
-                  padding: `${spacing.sm} ${spacing.md}`,
-                  backgroundColor: colors.primary.main,
-                  color: colors.text.light,
-                  border: 'none',
-                  borderRadius: borderRadius.sm,
-                  cursor: 'pointer'
-                }}
-                onClick={() => {
-                  handleAssignRider(riderToAssign, subscriptionType);
-                  setShowSubscriptionModal(false);
-                  setRiderToAssign(null);
-                }}
+              
+              <button 
+                style={styles.saveButton}
+                onClick={handleSaveRiderChanges}
               >
-                Assign Rider
+                Save Changes
               </button>
             </div>
           </div>
