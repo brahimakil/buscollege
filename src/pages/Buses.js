@@ -231,35 +231,60 @@ const Buses = () => {
       const updatedBus = { ...currentBus };
       const currentRiders = updatedBus.currentRiders || [];
       
-      // Find the rider to update
-      const riderIndex = currentRiders.findIndex(rider => rider.id === riderId);
+      // Find the rider to update - handle both object and string formats
+      const riderIndex = currentRiders.findIndex(rider => {
+        if (typeof rider === 'string') {
+          return rider === riderId;
+        }
+        return rider.id === riderId;
+      });
       
       if (riderIndex === -1) {
         toast.error("Rider not found in this bus.");
         return;
       }
       
+      // Get the current rider data
+      const currentRider = currentRiders[riderIndex];
+      
       // Update in Firestore based on what's changing
-      if (updates.paymentStatus && currentRiders[riderIndex].paymentStatus !== updates.paymentStatus) {
-        const result = await updateRiderBusPaymentStatus(riderId, currentBus.id, updates.paymentStatus);
-        if (result.error) {
-          throw new Error(result.error);
+      if (updates.paymentStatus) {
+        const currentPaymentStatus = typeof currentRider === 'object' ? currentRider.paymentStatus : 'unpaid';
+        if (currentPaymentStatus !== updates.paymentStatus) {
+          const result = await updateRiderBusPaymentStatus(riderId, currentBus.id, updates.paymentStatus);
+          if (result.error) {
+            throw new Error(result.error);
+          }
         }
       }
       
-      if (updates.subscriptionType && currentRiders[riderIndex].subscriptionType !== updates.subscriptionType) {
-        const result = await updateRiderBusSubscription(riderId, currentBus.id, updates.subscriptionType);
-        if (result.error) {
-          throw new Error(result.error);
+      if (updates.subscriptionType) {
+        const currentSubscriptionType = typeof currentRider === 'object' ? currentRider.subscriptionType : 'per_ride';
+        if (currentSubscriptionType !== updates.subscriptionType) {
+          const result = await updateRiderBusSubscription(riderId, currentBus.id, updates.subscriptionType);
+          if (result.error) {
+            throw new Error(result.error);
+          }
         }
       }
       
       // Update the local state immediately without waiting for a refresh
       const updatedRiders = [...currentRiders];
-      updatedRiders[riderIndex] = {
-        ...updatedRiders[riderIndex],
-        ...updates
-      };
+      
+      // Handle updating both string and object formats
+      if (typeof currentRider === 'string') {
+        // If it was just a string ID, convert it to an object
+        updatedRiders[riderIndex] = {
+          id: riderId,
+          ...updates
+        };
+      } else {
+        // If it was already an object, merge the updates
+        updatedRiders[riderIndex] = {
+          ...currentRider,
+          ...updates
+        };
+      }
       
       updatedBus.currentRiders = updatedRiders;
       

@@ -284,7 +284,49 @@ const BusDetails = ({
 }) => {
   const [activeTab, setActiveTab] = useState('details');
   
-  const currentRiders = bus.currentRiders || [];
+  // Process currentRiders to handle mixed data types (objects vs strings)
+  const processCurrentRiders = (currentRiders, allRiders) => {
+    if (!currentRiders || !Array.isArray(currentRiders)) return [];
+    
+    return currentRiders.map(rider => {
+      // If it's already a full object with name and email, return as is
+      if (typeof rider === 'object' && rider.name && rider.email) {
+        return rider;
+      }
+      
+      // If it's just a string (user ID), try to find the full rider data
+      const riderId = typeof rider === 'string' ? rider : rider.id;
+      const fullRiderData = allRiders?.find(r => r.id === riderId);
+      
+      if (fullRiderData) {
+        // Merge the full rider data with any existing subscription info
+        return {
+          id: riderId,
+          name: fullRiderData.fullName || fullRiderData.name || 'Unknown User',
+          email: fullRiderData.email || 'No email',
+          paymentStatus: (typeof rider === 'object' ? rider.paymentStatus : null) || 'unpaid',
+          subscriptionType: (typeof rider === 'object' ? rider.subscriptionType : null) || 'per_ride',
+          locationId: typeof rider === 'object' ? rider.locationId : null,
+          startDate: typeof rider === 'object' ? rider.startDate : null,
+          endDate: typeof rider === 'object' ? rider.endDate : null
+        };
+      }
+      
+      // If we can't find the rider data, return a placeholder
+      return {
+        id: riderId,
+        name: 'Unknown User',
+        email: 'No email available',
+        paymentStatus: (typeof rider === 'object' ? rider.paymentStatus : null) || 'unpaid',
+        subscriptionType: (typeof rider === 'object' ? rider.subscriptionType : null) || 'per_ride',
+        locationId: typeof rider === 'object' ? rider.locationId : null,
+        startDate: typeof rider === 'object' ? rider.startDate : null,
+        endDate: typeof rider === 'object' ? rider.endDate : null
+      };
+    });
+  };
+  
+  const currentRiders = processCurrentRiders(bus.currentRiders || [], riders);
   const currentRiderIds = currentRiders.map(rider => rider.id);
   
   const [riderToAssign, setRiderToAssign] = useState(null);
@@ -447,13 +489,13 @@ const BusDetails = ({
                 <div 
                   style={{
                     ...styles.progressBar,
-                    width: `${(bus.currentRiders?.length || 0) / (bus.maxCapacity || 1) * 100}%`,
-                    backgroundColor: getCapacityColor(bus.currentRiders || [], bus.maxCapacity || 1)
+                    width: `${(currentRiders.length) / (bus.maxCapacity || 1) * 100}%`,
+                    backgroundColor: getCapacityColor(currentRiders, bus.maxCapacity || 1)
                   }}
                 />
               </div>
               <span style={styles.capacityText}>
-                {bus.currentRiders ? bus.currentRiders.length : 0}/{bus.maxCapacity || 0}
+                {currentRiders.length}/{bus.maxCapacity || 0}
               </span>
             </div>
           </div>
