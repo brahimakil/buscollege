@@ -352,17 +352,23 @@ const convertWorkingDaysToDisplay = (workingDays) => {
 };
 
 const getLocationName = (bus, locationId) => {
-  if (!bus || !bus.locations || !locationId) return "Not selected";
+  if (!locationId) return "Not selected";
   
-  // Try to find by direct ID match or prefixed format
+  // If locationId is already a location name (string), return it directly
+  if (typeof locationId === 'string' && !locationId.startsWith('loc-')) {
+    return locationId;
+  }
+  
+  // Otherwise, try to find by ID in bus locations
+  if (!bus || !bus.locations) return locationId || "Unknown location";
+  
   const location = bus.locations.find(loc => 
     (loc.id === locationId) || 
     (`loc-${loc.id}` === locationId) ||
-    (loc.id === parseInt(locationId.replace('loc-', ''))) ||
-    (index => `loc-${index}` === locationId)
+    (loc.name === locationId)
   );
   
-  return location ? location.name : "Location not found";
+  return location ? location.name : locationId || "Unknown location";
 };
 
 const BusDetails = ({ 
@@ -378,25 +384,48 @@ const BusDetails = ({
   // Process current riders to ensure they have complete data
   const processCurrentRiders = (currentRiders, allRiders) => {
     return currentRiders.map(rider => {
-      // If it's already a full object with name and email, return as is
+      // If it's already a full object with name and email, preserve all data
       if (typeof rider === 'object' && rider !== null && rider.name && rider.email) {
-        return rider;
+        return {
+          ...rider, // This preserves locationId, assignedAt, etc.
+        };
       }
       
       const riderId = typeof rider === 'string' ? rider : rider.id;
       const riderInfo = allRiders.find(r => r.id === riderId);
       
       if (riderInfo) {
+        // Try to get location and time from rider's busAssignments
+        let locationId = null;
+        let assignedAt = null;
+        
+        if (riderInfo.busAssignments && Array.isArray(riderInfo.busAssignments)) {
+          const busAssignment = riderInfo.busAssignments.find(assignment => 
+            assignment.busId === localBus.id
+          );
+          if (busAssignment) {
+            locationId = busAssignment.locationId;
+            assignedAt = busAssignment.assignedAt;
+          }
+        }
+        
         return {
           id: riderId,
           name: riderInfo.name,
           email: riderInfo.email,
-          // PRESERVE existing payment status if available
+          // PRESERVE existing data from the rider object if it exists, otherwise use from busAssignments
           paymentStatus: (typeof rider === 'object' && rider.paymentStatus) ? 
                         rider.paymentStatus : 
                         'unpaid',
-          // Remove subscription type editing capability
-          subscriptionType: 'per_ride' // Fixed value
+          subscriptionType: (typeof rider === 'object' && rider.subscriptionType) ?
+                           rider.subscriptionType :
+                           'per_ride',
+          locationId: (typeof rider === 'object' && rider.locationId) ?
+                     rider.locationId :
+                     locationId,
+          assignedAt: (typeof rider === 'object' && rider.assignedAt) ?
+                     rider.assignedAt :
+                     assignedAt
         };
       }
       
@@ -408,7 +437,15 @@ const BusDetails = ({
         paymentStatus: (typeof rider === 'object' && rider.paymentStatus) ? 
                       rider.paymentStatus : 
                       'unpaid',
-        subscriptionType: 'per_ride' // Fixed value
+        subscriptionType: (typeof rider === 'object' && rider.subscriptionType) ?
+                           rider.subscriptionType :
+                           'per_ride',
+        locationId: (typeof rider === 'object' && rider.locationId) ?
+                     rider.locationId :
+                     null,
+        assignedAt: (typeof rider === 'object' && rider.assignedAt) ?
+                     rider.assignedAt :
+                     null
       };
     });
   };
@@ -481,6 +518,21 @@ const BusDetails = ({
           currentRiders: updatedRiders
         };
       });
+    }
+  };
+  
+  // Add helper function to format subscription time
+  const formatSubscriptionTime = (assignedAt) => {
+    if (!assignedAt) return 'Unknown';
+    
+    try {
+      const date = new Date(assignedAt);
+      return date.toLocaleDateString() + ' ' + date.toLocaleTimeString([], { 
+        hour: '2-digit', 
+        minute: '2-digit' 
+      });
+    } catch (error) {
+      return 'Invalid date';
     }
   };
   
@@ -621,6 +673,16 @@ const BusDetails = ({
                       <h4>{rider.name}</h4>
                       <p>{rider.email}</p>
                       <p>Payment: {rider.paymentStatus}</p>
+                      {rider.locationId && (
+                        <p style={{ fontSize: '0.9rem', color: colors.text.secondary }}>
+                          Location: {getLocationName(localBus, rider.locationId)}
+                        </p>
+                      )}
+                      {rider.assignedAt && (
+                        <p style={{ fontSize: '0.9rem', color: colors.text.secondary }}>
+                          Subscribed: {formatSubscriptionTime(rider.assignedAt)}
+                        </p>
+                      )}
                     </div>
                     
                     <div style={styles.riderActions}>
