@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { getBusesForAssignment } from '../../services/riderService';
+import { getAllBuses } from '../../services/busService';
 import { colors, spacing, typography, borderRadius } from '../../themes/theme';
 import { toast } from 'react-toastify';
 
@@ -181,129 +181,48 @@ const styles = {
   }
 };
 
-const RiderDetails = ({ rider, onAssignBus, onRemoveBus, onUpdatePayment, onClose }) => {
+const RiderDetails = ({ rider, onUpdatePayment, onClose }) => {
   const [assignedBuses, setAssignedBuses] = useState([]);
-  const [unassignedBuses, setUnassignedBuses] = useState([]);
-  const [selectedBus, setSelectedBus] = useState(null);
-  const [showSubscriptionModal, setShowSubscriptionModal] = useState(false);
-  const [subscriptionType, setSubscriptionType] = useState('per_ride');
-  const [selectedLocationId, setSelectedLocationId] = useState(null);
   
   const fetchBuses = useCallback(async () => {
     try {
-      const result = await getBusesForAssignment();
-      
+      const result = await getAllBuses();
       if (result.buses) {
-        const fetchedBuses = result.buses;
+        // Only get assigned buses for this rider
+        const riderAssignedBuses = result.buses.filter(bus => {
+          const currentRiders = bus.currentRiders || [];
+          return currentRiders.some(r => 
+            (typeof r === 'string' && r === rider.id) || 
+            (typeof r === 'object' && r.id === rider.id)
+          );
+        }).map(bus => {
+          // Get rider-specific data from the bus
+          const currentRiders = bus.currentRiders || [];
+          const riderData = currentRiders.find(r => 
+            (typeof r === 'string' && r === rider.id) || 
+            (typeof r === 'object' && r.id === rider.id)
+          );
+          
+          return {
+            ...bus,
+            subscriptionType: typeof riderData === 'object' ? riderData.subscriptionType : 'per_ride',
+            paymentStatus: typeof riderData === 'object' ? riderData.paymentStatus : 'unpaid',
+            locationId: typeof riderData === 'object' ? riderData.locationId : null,
+            assignedAt: typeof riderData === 'object' ? riderData.assignedAt : null,
+            status: typeof riderData === 'object' ? riderData.status : 'active'
+          };
+        });
         
-        if (rider) {
-          const assigned = [];
-          const unassigned = [];
-          
-          fetchedBuses.forEach(bus => {
-            const hasAssignment = rider.busAssignments && 
-              Array.isArray(rider.busAssignments) ? 
-              (typeof rider.busAssignments[0] === 'object' ?
-                rider.busAssignments.some(assign => assign.busId === bus.id) :
-                rider.busAssignments.includes(bus.id)) :
-              false;
-            
-            if (hasAssignment) {
-              let enhancedBus = { ...bus };
-              
-              if (rider.busAssignments && Array.isArray(rider.busAssignments) && 
-                  typeof rider.busAssignments[0] === 'object') {
-                const busAssignment = rider.busAssignments.find(a => a.busId === bus.id);
-                if (busAssignment) {
-                  enhancedBus.paymentStatus = busAssignment.paymentStatus;
-                  enhancedBus.subscriptionType = busAssignment.subscriptionType || 'per_ride';
-                  enhancedBus.locationId = busAssignment.locationId;
-                }
-              }
-              
-              assigned.push(enhancedBus);
-            } else {
-              if (bus.hasCapacity) {
-                unassigned.push(bus);
-              }
-            }
-          });
-          
-          setAssignedBuses(assigned);
-          setUnassignedBuses(unassigned);
-        }
+        setAssignedBuses(riderAssignedBuses);
       }
     } catch (error) {
       console.error("Error fetching buses:", error);
     }
-  }, [rider]);
+  }, [rider.id]);
   
   useEffect(() => {
-    if (rider) {
-      fetchBuses();
-    }
-  }, [rider, fetchBuses]);
-  
-  const isWithinOperatingHours = (bus) => {
-    if (!bus) {
-      return false;
-    }
-    
-    if (!bus.workingDays || !bus.operatingTimeFrom || !bus.operatingTimeTo) {
-      return false;
-    }
-    
-    const now = new Date();
-    const currentDay = now.toLocaleDateString('en-US', { weekday: 'lowercase' });
-    const currentHour = now.getHours();
-    const currentMinute = now.getMinutes();
-    
-    const isWorkingDay = Array.isArray(bus.workingDays) 
-      ? bus.workingDays.includes(currentDay) 
-      : bus.workingDays[currentDay] === true;
-      
-    if (!isWorkingDay) {
-      return false;
-    }
-    
-    const [fromHour, fromMinute] = bus.operatingTimeFrom.split(':').map(Number);
-    const [toHour, toMinute] = bus.operatingTimeTo.split(':').map(Number);
-    
-    const currentTimeInMinutes = currentHour * 60 + currentMinute;
-    const fromTimeInMinutes = fromHour * 60 + fromMinute;
-    const toTimeInMinutes = toHour * 60 + toMinute;
-    
-    return currentTimeInMinutes >= fromTimeInMinutes && currentTimeInMinutes <= toTimeInMinutes;
-  };
-  
-  const handleAssignBus = async () => {
-    if (!onAssignBus || !selectedBus || !selectedLocationId) return;
-    
-    try {
-      const subType = subscriptionType === 'none' ? 'per_ride' : subscriptionType;
-      
-      await onAssignBus(rider.id, selectedBus.id, subType, selectedLocationId);
-      
-      setShowSubscriptionModal(false);
-      setSelectedBus(null);
-      setSelectedLocationId(null);
-      
-      fetchBuses();
-    } catch (error) {
-      console.error("Error handling bus assignment:", error);
-    }
-  };
-  
-  const handleRemoveBus = async (busId) => {
-    if (onRemoveBus) {
-      try {
-        await onRemoveBus(rider.id, busId);
-        await fetchBuses();
-      } catch (error) {
-        console.error("Error removing bus subscription:", error);
-      }
-    }
-  };
+    fetchBuses();
+  }, [fetchBuses]);
   
   const handleUpdatePayment = async (busId, status) => {
     if (onUpdatePayment) {
@@ -346,10 +265,44 @@ const RiderDetails = ({ rider, onAssignBus, onRemoveBus, onUpdatePayment, onClos
     return location ? location.name : "Location data unavailable";
   };
   
-  const canEdit = selectedBus ? !isWithinOperatingHours(selectedBus) : false;
-  if (canEdit && selectedBus) {
-    console.log("Bus can be edited", selectedBus.id);
-  }
+  // Helper function to get subscription status color
+  const getSubscriptionStatusColor = (subscriptionType) => {
+    switch (subscriptionType) {
+      case 'monthly':
+        return colors.primary.main;
+      case 'per_ride':
+        return colors.secondary.main;
+      default:
+        return colors.text.secondary;
+    }
+  };
+
+  // Helper function to get payment status color
+  const getPaymentStatusColor = (paymentStatus) => {
+    switch (paymentStatus) {
+      case 'paid':
+        return colors.status.success;
+      case 'pending':
+        return colors.status.warning;
+      case 'unpaid':
+      default:
+        return colors.status.error;
+    }
+  };
+
+  // Helper function to check if subscription is cancelled/expired
+  const isSubscriptionCancelled = (bus) => {
+    if (bus.status === 'cancelled' || bus.status === 'inactive') {
+      return true;
+    }
+    
+    // Check if monthly subscription has expired
+    if (bus.subscriptionType === 'monthly' && bus.endDate) {
+      return new Date(bus.endDate) < new Date();
+    }
+    
+    return false;
+  };
   
   return (
     <div style={styles.container}>
@@ -362,396 +315,178 @@ const RiderDetails = ({ rider, onAssignBus, onRemoveBus, onUpdatePayment, onClos
         <h3 style={styles.sectionTitle}>Personal Information</h3>
         <div style={styles.detail}>
           <div style={styles.detailLabel}>Name:</div>
-          <div style={styles.detailValue}>{rider.name}</div>
+          <div style={styles.detailValue}>
+            {(() => {
+              const name = rider.name || rider.fullName;
+              if (typeof name === 'string' && name.trim()) {
+                return name;
+              } else if (typeof name === 'object' && name !== null) {
+                return name.firstName && name.lastName 
+                  ? `${name.firstName} ${name.lastName}`
+                  : name.displayName || name.name || 'N/A';
+              }
+              return 'N/A';
+            })()}
+          </div>
         </div>
         <div style={styles.detail}>
           <div style={styles.detailLabel}>Email:</div>
-          <div style={styles.detailValue}>{rider.email}</div>
+          <div style={styles.detailValue}>
+            {typeof rider.email === 'string' ? rider.email : 'N/A'}
+          </div>
         </div>
         <div style={styles.detail}>
           <div style={styles.detailLabel}>Phone:</div>
-          <div style={styles.detailValue}>{rider.phoneNumber || 'N/A'}</div>
+          <div style={styles.detailValue}>
+            {typeof rider.phoneNumber === 'string' ? rider.phoneNumber : 'N/A'}
+          </div>
         </div>
         <div style={styles.detail}>
           <div style={styles.detailLabel}>Address:</div>
-          <div style={styles.detailValue}>{rider.address || 'N/A'}</div>
+          <div style={styles.detailValue}>
+            {typeof rider.address === 'string' ? rider.address : 'N/A'}
+          </div>
         </div>
         <div style={styles.detail}>
           <div style={styles.detailLabel}>Emergency Contact:</div>
-          <div style={styles.detailValue}>{rider.emergencyContact || 'N/A'}</div>
+          <div style={styles.detailValue}>
+            {typeof rider.emergencyContact === 'string' ? rider.emergencyContact : 'N/A'}
+          </div>
         </div>
       </div>
       
       <div style={styles.section}>
-        <h3 style={styles.sectionTitle}>Current Bus Assignments</h3>
+        <h3 style={styles.sectionTitle}>Bus Subscriptions & Payment Status</h3>
         {assignedBuses.length > 0 ? (
           <div style={styles.busList}>
             {assignedBuses.map(bus => {
               const locationName = getLocationName(bus, bus.locationId);
-              
-              const canEdit = bus ? !isWithinOperatingHours(bus) : false;
-              if (canEdit && bus) {
-                console.log("Bus can be edited", bus.id);
-              }
+              const isCancelled = isSubscriptionCancelled(bus);
               
               return (
-                <div key={bus.id} style={styles.busCard}>
+                <div key={bus.id} style={{
+                  ...styles.busCard,
+                  ...(isCancelled ? { opacity: 0.6, backgroundColor: colors.background.default } : {})
+                }}>
                   <div style={styles.busInfo}>
-                    <div style={styles.busName}>{bus.name}</div>
-                    {bus.label && <div style={styles.busDetails}>{bus.label}</div>}
-                    
-                    <div style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: spacing.md,
-                      marginTop: spacing.xs
-                    }}>
-                      <span style={{
-                        ...styles.badge,
-                        ...(bus.subscriptionType === 'monthly' ? styles.monthlyBadge : 
-                           bus.subscriptionType === 'per_ride' ? styles.perRideBadge : styles.noneBadge)
-                      }}>
-                        {bus.subscriptionType === 'monthly' ? 'Monthly' : 
-                         bus.subscriptionType === 'per_ride' ? 'Per Ride' : 'None'}
-                      </span>
-                      
-                      {bus.subscriptionType !== 'none' && (
+                    <div style={styles.busName}>
+                      {typeof bus.name === 'string' ? bus.name : (bus.busName || 'Unknown Bus')}
+                      {isCancelled && (
                         <span style={{
-                          ...styles.badge,
-                          ...(bus.paymentStatus === 'paid' ? styles.paidBadge : 
-                             bus.paymentStatus === 'pending' ? styles.pendingBadge : styles.unpaidBadge)
+                          marginLeft: spacing.sm,
+                          padding: `${spacing.xs} ${spacing.sm}`,
+                          backgroundColor: colors.status.error,
+                          color: colors.text.light,
+                          borderRadius: borderRadius.sm,
+                          fontSize: '0.75rem',
+                          fontWeight: 'bold'
                         }}>
-                          {bus.paymentStatus ? bus.paymentStatus.charAt(0).toUpperCase() + bus.paymentStatus.slice(1) : 'Unpaid'}
+                          CANCELLED
                         </span>
                       )}
                     </div>
                     
+                    {bus.label && <div style={styles.busDetails}>{typeof bus.label === 'string' ? bus.label : ''}</div>}
+                    
+                    {/* Subscription Type Display */}
+                    <div style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: spacing.md,
+                      marginTop: spacing.sm
+                    }}>
+                      <div>
+                        <strong>Subscription:</strong>
+                        <span style={{
+                          marginLeft: spacing.xs,
+                          padding: `${spacing.xs} ${spacing.sm}`,
+                          backgroundColor: getSubscriptionStatusColor(bus.subscriptionType),
+                          color: colors.text.light,
+                          borderRadius: borderRadius.sm,
+                          fontSize: '0.85rem',
+                          fontWeight: 'bold'
+                        }}>
+                          {bus.subscriptionType === 'monthly' ? 'Monthly' : 
+                           bus.subscriptionType === 'per_ride' ? 'Per Ride' : 'Unknown'}
+                        </span>
+                      </div>
+                      
+                      {/* Payment Status Display */}
+                      <div>
+                        <strong>Payment:</strong>
+                        <span style={{
+                          marginLeft: spacing.xs,
+                          padding: `${spacing.xs} ${spacing.sm}`,
+                          backgroundColor: getPaymentStatusColor(bus.paymentStatus),
+                          color: colors.text.light,
+                          borderRadius: borderRadius.sm,
+                          fontSize: '0.85rem',
+                          fontWeight: 'bold'
+                        }}>
+                          {bus.paymentStatus ? bus.paymentStatus.toUpperCase() : 'UNPAID'}
+                        </span>
+                      </div>
+                    </div>
+                    
+                    {/* Location Display */}
                     {bus.locationId && (
-                      <div style={{marginTop: spacing.xs, fontSize: '0.9rem'}}>
-                        <strong>Location:</strong> {locationName || "Unable to find location details"}
+                      <div style={{marginTop: spacing.sm, fontSize: '0.9rem'}}>
+                        <strong>Pickup Location:</strong> {locationName || "Location not found"}
                       </div>
                     )}
                     
+                    {/* Subscription Date */}
+                    {bus.assignedAt && (
+                      <div style={{marginTop: spacing.xs, fontSize: '0.85rem', color: colors.text.secondary}}>
+                        <strong>Subscribed:</strong> {new Date(bus.assignedAt).toLocaleDateString()}
+                      </div>
+                    )}
+                    
+                    {/* Bus Capacity Display */}
                     <div style={styles.busCapacity}>
                       <span>Capacity: </span>
                       <div style={styles.capacityBar}>
                         <div 
                           style={{
                             ...styles.capacityFill,
-                            width: `${(bus.currentRiders / bus.maxCapacity) * 100}%`,
-                            backgroundColor: bus.currentRiders / bus.maxCapacity > 0.8 ? colors.status.error : colors.status.success
+                            width: `${((Array.isArray(bus.currentRiders) ? bus.currentRiders.length : (typeof bus.currentRiders === 'number' ? bus.currentRiders : 0)) / (bus.maxCapacity || 1)) * 100}%`,
+                            backgroundColor: ((Array.isArray(bus.currentRiders) ? bus.currentRiders.length : (typeof bus.currentRiders === 'number' ? bus.currentRiders : 0)) / (bus.maxCapacity || 1)) > 0.8 ? colors.status.error : colors.status.success
                           }}
                         />
                       </div>
-                      <span>{bus.currentRiders}/{bus.maxCapacity}</span>
+                      <span>
+                        {Array.isArray(bus.currentRiders) ? bus.currentRiders.length : (typeof bus.currentRiders === 'number' ? bus.currentRiders : 0)}/
+                        {bus.maxCapacity || 0}
+                      </span>
                     </div>
                     
+                    {/* Operating Hours */}
                     <div style={{marginTop: spacing.xs, fontSize: '0.85rem'}}>
-                      <strong>Operating:</strong> {bus.operatingTimeFrom} - {bus.operatingTimeTo}
+                      <strong>Operating:</strong> {bus.operatingTimeFrom || 'N/A'} - {bus.operatingTimeTo || 'N/A'}
                     </div>
-                    
-                    {bus.locations && bus.locations.length > 0 && (
-                      <ul style={styles.locationsList}>
-                        {bus.locations.slice(0, 2).map((location, index) => (
-                          <li key={index} style={styles.locationItem}>
-                            <div style={styles.locationDot}></div>
-                            {location.name}
-                          </li>
-                        ))}
-                        {bus.locations.length > 2 && (
-                          <li style={styles.locationItem}>
-                            <div style={styles.locationDot}></div>
-                            +{bus.locations.length - 2} more locations...
-                          </li>
-                        )}
-                      </ul>
-                    )}
                   </div>
                   
-                  <div style={{display: 'flex', flexDirection: 'column', gap: spacing.sm}}>
-                    <button
-                      style={{...styles.actionButton, ...styles.removeButton}}
-                      onClick={() => handleRemoveBus(bus.id)}
-                    >
-                      Remove
-                    </button>
-                    
-                    {bus.subscriptionType !== 'none' && (
-                      <div style={{display: 'flex', gap: spacing.xs}}>
-                        <button
-                          style={{
-                            ...styles.actionButton, 
-                            ...styles.payButton,
-                            flex: 1,
-                            fontSize: '0.8rem',
-                            padding: `${spacing.xs} ${spacing.xs}`
-                          }}
-                          onClick={() => handleUpdatePayment(bus.id, 'paid')}
-                          disabled={bus.paymentStatus === 'paid'}
-                        >
-                          Paid
-                        </button>
-                        <button
-                          style={{
-                            ...styles.actionButton, 
-                            backgroundColor: colors.status.warning,
-                            color: colors.text.light,
-                            flex: 1,
-                            fontSize: '0.8rem',
-                            padding: `${spacing.xs} ${spacing.xs}`
-                          }}
-                          onClick={() => handleUpdatePayment(bus.id, 'pending')}
-                          disabled={bus.paymentStatus === 'pending'}
-                        >
-                          Pending
-                        </button>
-                        <button
-                          style={{
-                            ...styles.actionButton, 
-                            ...styles.removeButton,
-                            flex: 1,
-                            fontSize: '0.8rem',
-                            padding: `${spacing.xs} ${spacing.xs}`
-                          }}
-                          onClick={() => handleUpdatePayment(bus.id, 'unpaid')}
-                          disabled={bus.paymentStatus === 'unpaid'}
-                        >
-                          Unpaid
-                        </button>
-                      </div>
-                    )}
-                  </div>
+                 
                 </div>
               );
             })}
           </div>
         ) : (
-          <p>No buses assigned to this rider yet.</p>
+          <div style={{
+            textAlign: 'center',
+            padding: spacing.xl,
+            backgroundColor: colors.background.default,
+            borderRadius: borderRadius.md,
+            color: colors.text.secondary
+          }}>
+            <div style={{fontSize: '3rem', marginBottom: spacing.md}}>🚌</div>
+            <p>This rider is not subscribed to any buses.</p>
+            <p style={{fontSize: '0.9rem', marginTop: spacing.sm}}>
+              Riders can subscribe to buses through the mobile app.
+            </p>
+          </div>
         )}
       </div>
-      
-      <div style={styles.section}>
-        <h3 style={styles.sectionTitle}>Manage Bus Assignments</h3>
-        <div style={styles.busList}>
-          {unassignedBuses.length > 0 ? (
-            unassignedBuses.map(bus => (
-              <div key={bus.id} style={styles.busCard}>
-                <div style={styles.busInfo}>
-                  <div style={styles.busName}>{bus.name}</div>
-                  {bus.label && <div style={styles.busDetails}>{bus.label}</div>}
-                  
-                  <div style={styles.busCapacity}>
-                    <span>Capacity: </span>
-                    <div style={styles.capacityBar}>
-                      <div 
-                        style={{
-                          ...styles.capacityFill,
-                          width: `${(bus.currentRiders / bus.maxCapacity) * 100}%`,
-                          backgroundColor: bus.currentRiders / bus.maxCapacity > 0.8 ? colors.status.error : colors.status.success
-                        }}
-                      />
-                    </div>
-                    <span>{bus.currentRiders}/{bus.maxCapacity}</span>
-                  </div>
-                  
-                  <div style={{marginTop: spacing.xs, fontSize: '0.85rem'}}>
-                    <strong>Operating:</strong> {bus.operatingTimeFrom} - {bus.operatingTimeTo}
-                  </div>
-                  
-                  {bus.locations && bus.locations.length > 0 && (
-                    <ul style={styles.locationsList}>
-                      {bus.locations.slice(0, 2).map((location, index) => (
-                        <li key={index} style={styles.locationItem}>
-                          <div style={styles.locationDot}></div>
-                          {location.name}
-                        </li>
-                      ))}
-                      {bus.locations.length > 2 && (
-                        <li style={styles.locationItem}>
-                          <div style={styles.locationDot}></div>
-                          +{bus.locations.length - 2} more locations...
-                        </li>
-                      )}
-                    </ul>
-                  )}
-                </div>
-                
-                <button
-                  style={{...styles.actionButton, ...styles.assignButton}}
-                  onClick={() => {
-                    setSelectedBus(bus);
-                    setSubscriptionType('per_ride');
-                    setSelectedLocationId(null);
-                    setShowSubscriptionModal(true);
-                  }}
-                >
-                  Subscribe
-                </button>
-              </div>
-            ))
-          ) : (
-            <p>No available buses for assignment. Either all buses are full or the rider is already assigned to all buses.</p>
-          )}
-        </div>
-      </div>
-      
-      {showSubscriptionModal && selectedBus && (
-        <div style={{
-          position: 'fixed',
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          backgroundColor: 'rgba(0,0,0,0.5)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          zIndex: 1000
-        }}>
-          <div style={{
-            backgroundColor: colors.background.paper,
-            padding: spacing.xl,
-            borderRadius: borderRadius.md,
-            width: '500px',
-            maxWidth: '90%',
-            maxHeight: '90vh',
-            overflowY: 'auto'
-          }}>
-            <h3 style={{marginTop: 0}}>
-              Subscribe to Bus
-            </h3>
-            <p>
-              Choose details for {rider.name} on bus {selectedBus.name}:
-            </p>
-            
-            <div style={{marginBottom: spacing.lg}}>
-              <h4 style={{marginBottom: spacing.sm}}>Select Pickup/Dropoff Location:</h4>
-              {selectedBus.locations && selectedBus.locations.length > 0 ? (
-                <div style={{
-                  display: 'flex',
-                  flexDirection: 'column',
-                  gap: spacing.sm,
-                  maxHeight: '200px',
-                  overflowY: 'auto',
-                  border: `1px solid ${colors.border.light}`,
-                  borderRadius: borderRadius.sm,
-                  padding: spacing.sm
-                }}>
-                  {selectedBus.locations.map((location, index) => (
-                    <label key={location.id || index} style={{
-                      display: 'block',
-                      padding: spacing.sm,
-                      border: `1px solid ${selectedLocationId === (location.id || `loc-${index}`) ? colors.primary.main : colors.border.light}`,
-                      borderRadius: borderRadius.sm,
-                      backgroundColor: selectedLocationId === (location.id || `loc-${index}`) ? colors.primary.light : 'transparent',
-                      cursor: 'pointer'
-                    }}>
-                      <input
-                        type="radio"
-                        name="locationId"
-                        value={location.id || `loc-${index}`}
-                        checked={selectedLocationId === (location.id || `loc-${index}`)}
-                        onChange={() => {
-                          console.log("Selected location:", location.name, "with ID:", location.id || `loc-${index}`);
-                          setSelectedLocationId(location.id || `loc-${index}`);
-                        }}
-                        style={{marginRight: spacing.sm}}
-                      />
-                      <strong>{location.name}</strong>
-                      <div style={{fontSize: '0.85rem', marginTop: spacing.xs}}>
-                        Arrival time: {location.arrivalTimeFrom} - {location.arrivalTimeTo}
-                      </div>
-                    </label>
-                  ))}
-                </div>
-              ) : (
-                <p>No locations defined for this bus.</p>
-              )}
-              {!selectedLocationId && <div style={styles.error}>Please select a location</div>}
-            </div>
-            
-            <div style={{marginBottom: spacing.lg}}>
-              <h4 style={{marginBottom: spacing.sm}}>Select Subscription Type:</h4>
-              
-              <label style={{
-                display: 'block',
-                marginBottom: spacing.sm,
-                cursor: 'pointer',
-                padding: spacing.sm,
-                border: `1px solid ${subscriptionType === 'per_ride' ? colors.primary.main : colors.border.main}`,
-                borderRadius: borderRadius.sm,
-                backgroundColor: subscriptionType === 'per_ride' ? colors.primary.light : 'transparent'
-              }}>
-                <input
-                  type="radio"
-                  name="subscriptionType"
-                  value="per_ride"
-                  checked={subscriptionType === 'per_ride'}
-                  onChange={() => setSubscriptionType('per_ride')}
-                  style={{marginRight: spacing.sm}}
-                />
-                Daily (${parseFloat(selectedBus.pricePerRide || 0).toFixed(2)} per day)
-              </label>
-              
-              <label style={{
-                display: 'block',
-                cursor: 'pointer',
-                padding: spacing.sm,
-                border: `1px solid ${subscriptionType === 'monthly' ? colors.primary.main : colors.border.main}`,
-                borderRadius: borderRadius.sm,
-                backgroundColor: subscriptionType === 'monthly' ? colors.primary.light : 'transparent'
-              }}>
-                <input
-                  type="radio"
-                  name="subscriptionType"
-                  value="monthly"
-                  checked={subscriptionType === 'monthly'}
-                  onChange={() => setSubscriptionType('monthly')}
-                  style={{marginRight: spacing.sm}}
-                />
-                Monthly Subscription (${parseFloat(selectedBus.pricePerMonth || 0).toFixed(2)} per month)
-              </label>
-            </div>
-            
-            <div style={{
-              display: 'flex',
-              justifyContent: 'flex-end',
-              gap: spacing.md
-            }}>
-              <button
-                style={{
-                  padding: `${spacing.sm} ${spacing.lg}`,
-                  backgroundColor: colors.text.secondary,
-                  color: colors.text.light,
-                  border: 'none',
-                  borderRadius: borderRadius.sm,
-                  cursor: 'pointer'
-                }}
-                onClick={() => {
-                  setShowSubscriptionModal(false);
-                  setSelectedBus(null);
-                }}
-              >
-                Cancel
-              </button>
-              <button
-                style={{
-                  padding: `${spacing.sm} ${spacing.lg}`,
-                  backgroundColor: colors.primary.main,
-                  color: colors.text.light,
-                  border: 'none',
-                  borderRadius: borderRadius.sm,
-                  cursor: 'pointer'
-                }}
-                onClick={handleAssignBus}
-                disabled={!selectedLocationId}
-              >
-                Subscribe
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 };

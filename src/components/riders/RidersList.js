@@ -91,7 +91,7 @@ const styles = {
   }
 };
 
-const RidersList = ({ riders, onEdit, onDelete, onAssignBus, onViewDetails, buses }) => {
+const RidersList = ({ riders, onEdit, onDelete, onViewDetails }) => {
   const [busesState, setBusesState] = useState([]);
 
   useEffect(() => {
@@ -139,41 +139,40 @@ const RidersList = ({ riders, onEdit, onDelete, onAssignBus, onViewDetails, buse
         <tbody>
           {riders.map((rider) => (
             <tr key={rider.id} style={styles.tableRow}>
-              <td style={styles.tableCell}>{rider.name}</td>
-              <td style={styles.tableCell}>{rider.email}</td>
-              <td style={styles.tableCell}>{rider.phoneNumber}</td>
+              <td style={styles.tableCell}>{rider.name || rider.fullName || 'N/A'}</td>
+              <td style={styles.tableCell}>{rider.email || 'N/A'}</td>
+              <td style={styles.tableCell}>{rider.phoneNumber || 'N/A'}</td>
               <td style={styles.tableCell}>
                 {rider.busAssignments && rider.busAssignments.length > 0 ? (
-                  <div>
-                    {Array.isArray(rider.busAssignments) && rider.busAssignments.length > 0 ?
-                      (typeof rider.busAssignments[0] === 'object' ? (
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
-                          {rider.busAssignments.map((assignment, index) => (
-                            <div key={index} style={{ 
-                              display: 'flex', 
-                              alignItems: 'center', 
-                              gap: '5px',
-                              marginBottom: spacing.xs
-                            }}>
-                              <span style={{
-                                ...styles.badge,
-                                ...(assignment.subscriptionType === 'monthly' ? styles.monthlyBadge : 
-                                   assignment.subscriptionType === 'per_ride' ? styles.perRideBadge : styles.noneBadge)
-                              }}>
-                                {assignment.subscriptionType === 'monthly' ? 'Monthly' : 
-                                 assignment.subscriptionType === 'per_ride' ? 'Daily' : 'None'}
-                              </span>
-                              {assignment.busId && <span style={{fontSize: '0.75rem'}}>({getBusName(assignment.busId)})</span>}
-                            </div>
-                          ))
-                        }
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
+                    {rider.busAssignments.map((assignment, index) => {
+                      if (!assignment || typeof assignment !== 'object') {
+                        return null;
+                      }
+                      
+                      return (
+                        <div key={index} style={{ 
+                          display: 'flex', 
+                          alignItems: 'center', 
+                          gap: '5px',
+                          marginBottom: spacing.xs
+                        }}>
+                          <span style={{
+                            ...styles.badge,
+                            ...(assignment.subscriptionType === 'monthly' ? styles.monthlyBadge : 
+                               assignment.subscriptionType === 'per_ride' ? styles.perRideBadge : styles.noneBadge)
+                          }}>
+                            {assignment.subscriptionType === 'monthly' ? 'Monthly' : 
+                             assignment.subscriptionType === 'per_ride' ? 'Per Ride' : 'None'}
+                          </span>
+                          {assignment.busId && (
+                            <span style={{fontSize: '0.75rem'}}>
+                              ({getBusName(assignment.busId)})
+                            </span>
+                          )}
                         </div>
-                      ) : (
-                        <span style={{...styles.badge, ...styles.noneBadge}}>None</span>
-                      )) : (
-                        <span style={{...styles.badge, ...styles.noneBadge}}>None</span>
-                      )
-                    }
+                      );
+                    })}
                   </div>
                 ) : (
                   <span style={{...styles.badge, ...styles.noneBadge}}>None</span>
@@ -182,19 +181,23 @@ const RidersList = ({ riders, onEdit, onDelete, onAssignBus, onViewDetails, buse
               <td style={styles.tableCell}>
                 {rider.busAssignments && rider.busAssignments.length > 0 ? (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
-                    {Array.isArray(rider.busAssignments) && typeof rider.busAssignments[0] === 'object' ? (
-                      rider.busAssignments.map((assignment, index) => (
+                    {rider.busAssignments.map((assignment, index) => {
+                      if (!assignment || typeof assignment !== 'object') {
+                        return null;
+                      }
+                      
+                      return (
                         <span key={index} style={{
                           ...styles.badge,
                           ...(assignment.paymentStatus === 'paid' ? styles.paidBadge : 
                              assignment.paymentStatus === 'pending' ? styles.pendingBadge : styles.unpaidBadge)
                         }}>
-                          {assignment.paymentStatus ? assignment.paymentStatus.charAt(0).toUpperCase() + assignment.paymentStatus.slice(1) : 'Unpaid'}
+                          {assignment.paymentStatus ? 
+                            assignment.paymentStatus.charAt(0).toUpperCase() + assignment.paymentStatus.slice(1) : 
+                            'Unpaid'}
                         </span>
-                      ))
-                    ) : (
-                      <span style={{...styles.badge, ...styles.unpaidBadge}}>Unpaid</span>
-                    )}
+                      );
+                    })}
                   </div>
                 ) : (
                   <span style={{...styles.badge, ...styles.unpaidBadge}}>Unpaid</span>
@@ -210,7 +213,7 @@ const RidersList = ({ riders, onEdit, onDelete, onAssignBus, onViewDetails, buse
                     style={{...styles.actionButton, ...styles.viewButton}}
                     onClick={() => onViewDetails && onViewDetails(rider)}
                   >
-                    View
+                    View Details
                   </button>
                   <button 
                     style={{...styles.actionButton, ...styles.editButton}}
@@ -234,4 +237,4 @@ const RidersList = ({ riders, onEdit, onDelete, onAssignBus, onViewDetails, buse
   );
 };
 
-export default RidersList; 
+export default RidersList;

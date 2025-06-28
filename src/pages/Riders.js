@@ -10,8 +10,6 @@ import {
   createRider,
   updateRider,
   deleteRider,
-  assignRiderToBus,
-  removeRiderFromBus,
   updateRiderBusPaymentStatus
 } from '../services/riderService';
 import { colors, typography, spacing, borderRadius, shadows } from '../themes/theme';
@@ -135,54 +133,6 @@ const Riders = () => {
     }
   };
   
-  const handleAssignBus = async (riderId, busId, subscriptionType = 'none', locationId = null) => {
-    try {
-      const rider = riders.find(r => r.id === riderId);
-      if (!rider) {
-        throw new Error('Rider not found');
-      }
-      
-      const result = await assignRiderToBus(
-        riderId, 
-        rider.fullName, 
-        rider.email, 
-        busId, 
-        subscriptionType, 
-        locationId
-      );
-      
-      if (result.error) {
-        throw new Error(result.error);
-      }
-      
-      // Refresh the riders list to get updated data
-      fetchRiders();
-      
-      toast.success("Bus assigned successfully!");
-    } catch (error) {
-      toast.error(`Error: ${error.message}`);
-      console.error("Error assigning bus:", error);
-    }
-  };
-  
-  const handleRemoveBus = async (riderId, busId) => {
-    try {
-      const result = await removeRiderFromBus(riderId, busId);
-      
-      if (result.error) {
-        throw new Error(result.error);
-      }
-      
-      // Refresh the riders list to get updated data
-      fetchRiders();
-      
-      toast.success("Bus removed successfully!");
-    } catch (error) {
-      toast.error(`Error: ${error.message}`);
-      console.error("Error removing bus:", error);
-    }
-  };
-  
   const handleUpdatePayment = async (riderId, busId, status) => {
     try {
       const result = await updateRiderBusPaymentStatus(riderId, busId, status);
@@ -292,7 +242,6 @@ const Riders = () => {
             riders={riders} 
             onEdit={handleEditRider} 
             onDelete={handleDeleteClick} 
-            onAssignBus={handleAssignBus}
             onViewDetails={handleViewDetails}
           />
         )}
@@ -366,8 +315,6 @@ const Riders = () => {
             <RiderDetails 
               rider={currentRider}
               onUpdatePayment={handleUpdatePayment}
-              onRemoveBus={handleRemoveBus}
-              onAssignBus={handleAssignBus}
               onClose={() => setIsDetailsModalOpen(false)}
             />
           )}

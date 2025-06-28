@@ -1,0 +1,1303 @@
+{
+    "tyre_district": {
+      "governorate": "South Lebanon",
+      "arabic_name": "قضاء صور",
+      "district": "Tyre District",
+      "capital": "Tyre",
+      "locations": [
+        {
+          "id": "tyre-center",
+          "name": "Tyre",
+          "arabic_name": "صور",
+          "shortName": "Tyre",
+          "latitude": 33.2707,
+          "longitude": 35.2038,
+          "type": "city",
+          "category": "district_capital",
+          "population": 60000,
+          "address": {
+            "city": "Tyre",
+            "district": "Tyre",
+            "governorate": "South Lebanon",
+            "country": "Lebanon"
+          }
+        },
+        {
+          "id": "sour-center",
+          "name": "Sour",
+          "arabic_name": "صور",
+          "shortName": "Sour",
+          "latitude": 33.2707,
+          "longitude": 35.2038,
+          "type": "city",
+          "category": "district_capital",
+          "population": 60000,
+          "address": {
+            "city": "Sour",
+            "district": "Tyre",
+            "governorate": "South Lebanon",
+            "country": "Lebanon"
+          }
+        },
+        {
+          "id": "al-aabbassiyah",
+          "name": "Al-Aabbassiyah",
+          "arabic_name": "العباسية",
+          "shortName": "Al-Aabbassiyah",
+          "latitude": 33.2856,
+          "longitude": 35.2274,
+          "type": "village",
+          "category": "village",
+          "population": 8000,
+          "address": {
+            "city": "Al-Aabbassiyah",
+            "district": "Tyre",
+            "governorate": "South Lebanon",
+            "country": "Lebanon"
+          }
+        },
+        {
+          "id": "aaitit",
+          "name": "Aaitit",
+          "arabic_name": "عيتيت",
+          "shortName": "Aaitit",
+          "latitude": 33.2800,
+          "longitude": 35.2400,
+          "type": "village",
+          "category": "village",
+          "population": 2500,
+          "address": {
+            "city": "Aaitit",
+            "district": "Tyre",
+            "governorate": "South Lebanon",
+            "country": "Lebanon"
+          }
+        },
+        {
+          "id": "aalma-ash-shaab",
+          "name": "Aalma ash-Shaab",
+          "arabic_name": "علما الشعب",
+          "shortName": "Aalma ash-Shaab",
+          "latitude": 33.1200,
+          "longitude": 35.1800,
+          "type": "village",
+          "category": "village",
+          "population": 3500,
+          "address": {
+            "city": "Aalma ash-Shaab",
+            "district": "Tyre",
+            "governorate": "South Lebanon",
+            "country": "Lebanon"
+          }
+        },
+        {
+          "id": "ain-abu-aabdallah",
+          "name": "Ain Abu Aabdallah",
+          "arabic_name": "عين أبو عبدالله",
+          "shortName": "Ain Abu Aabdallah",
+          "latitude": 33.2200,
+          "longitude": 35.2100,
+          "type": "village",
+          "category": "village",
+          "population": 1500,
+          "address": {
+            "city": "Ain Abu Aabdallah",
+            "district": "Tyre",
+            "governorate": "South Lebanon",
+            "country": "Lebanon"
+          }
+        },
+        {
+          "id": "ain-az-zarqa",
+          "name": "Ain az-Zarqa",
+          "arabic_name": "عين الزرقا",
+          "shortName": "Ain az-Zarqa",
+          "latitude": 33.2300,
+          "longitude": 35.2200,
+          "type": "village",
+          "category": "village",
+          "population": 1200,
+          "address": {
+            "city": "Ain az-Zarqa",
+            "district": "Tyre",
+            "governorate": "South Lebanon",
+            "country": "Lebanon"
+          }
+        },
+        {
+          "id": "ain-baal",
+          "name": "Ain Baal",
+          "arabic_name": "عين بعال",
+          "shortName": "Ain Baal",
+          "latitude": 33.2600,
+          "longitude": 35.2000,
+          "type": "village",
+          "category": "village",
+          "population": 4000,
+          "address": {
+            "city": "Ain Baal",
+            "district": "Tyre",
+            "governorate": "South Lebanon",
+            "country": "Lebanon"
+          }
+        },
+        {
+          "id": "arzoun",
+          "name": "Arzoun",
+          "arabic_name": "أرزون",
+          "shortName": "Arzoun",
+          "latitude": 33.2100,
+          "longitude": 35.2300,
+          "type": "village",
+          "category": "village",
+          "population": 2000,
+          "address": {
+            "city": "Arzoun",
+            "district": "Tyre",
+            "governorate": "South Lebanon",
+            "country": "Lebanon"
+          }
+        },
+        {
+          "id": "baflay",
+          "name": "Baflay",
+          "arabic_name": "بفلاي",
+          "shortName": "Baflay",
+          "latitude": 33.2400,
+          "longitude": 35.2500,
+          "type": "village",
+          "category": "village",
+          "population": 1800,
+          "address": {
+            "city": "Baflay",
+            "district": "Tyre",
+            "governorate": "South Lebanon",
+            "country": "Lebanon"
+          }
+        },
+        {
+          "id": "barish",
+          "name": "Barish",
+          "arabic_name": "باريش",
+          "shortName": "Barish",
+          "latitude": 33.2000,
+          "longitude": 35.2400,
+          "type": "village",
+          "category": "village",
+          "population": 2200,
+          "address": {
+            "city": "Barish",
+            "district": "Tyre",
+            "governorate": "South Lebanon",
+            "country": "Lebanon"
+          }
+        },
+        {
+          "id": "al-basatin",
+          "name": "Al-Basatin",
+          "arabic_name": "البساتين",
+          "shortName": "Al-Basatin",
+          "latitude": 33.2500,
+          "longitude": 35.2100,
+          "type": "village",
+          "category": "village",
+          "population": 1600,
+          "address": {
+            "city": "Al-Basatin",
+            "district": "Tyre",
+            "governorate": "South Lebanon",
+            "country": "Lebanon"
+          }
+        },
+        {
+          "id": "batoulay",
+          "name": "Batoulay",
+          "arabic_name": "بطولاي",
+          "shortName": "Batoulay",
+          "latitude": 33.2300,
+          "longitude": 35.2600,
+          "type": "village",
+          "category": "village",
+          "population": 1400,
+          "address": {
+            "city": "Batoulay",
+            "district": "Tyre",
+            "governorate": "South Lebanon",
+            "country": "Lebanon"
+          }
+        },
+        {
+          "id": "al-bayyad",
+          "name": "Al-Bayyad",
+          "arabic_name": "البياض",
+          "shortName": "Al-Bayyad",
+          "latitude": 33.2700,
+          "longitude": 35.2200,
+          "type": "village",
+          "category": "village",
+          "population": 3000,
+          "address": {
+            "city": "Al-Bayyad",
+            "district": "Tyre",
+            "governorate": "South Lebanon",
+            "country": "Lebanon"
+          }
+        },
+        {
+          "id": "al-bazouriyah",
+          "name": "Al-Bazouriyah",
+          "arabic_name": "البازورية",
+          "shortName": "Al-Bazouriyah",
+          "latitude": 33.2400,
+          "longitude": 35.2300,
+          "type": "village",
+          "category": "village",
+          "population": 2500,
+          "address": {
+            "city": "Al-Bazouriyah",
+            "district": "Tyre",
+            "governorate": "South Lebanon",
+            "country": "Lebanon"
+          }
+        },
+        {
+          "id": "bedias",
+          "name": "Bedias",
+          "arabic_name": "بدياس",
+          "shortName": "Bedias",
+          "latitude": 33.2200,
+          "longitude": 35.2500,
+          "type": "village",
+          "category": "village",
+          "population": 1800,
+          "address": {
+            "city": "Bedias",
+            "district": "Tyre",
+            "governorate": "South Lebanon",
+            "country": "Lebanon"
+          }
+        },
+        {
+          "id": "bestiyat",
+          "name": "Bestiyat",
+          "arabic_name": "بستيات",
+          "shortName": "Bestiyat",
+          "latitude": 33.2100,
+          "longitude": 35.2600,
+          "type": "village",
+          "category": "village",
+          "population": 1200,
+          "address": {
+            "city": "Bestiyat",
+            "district": "Tyre",
+            "governorate": "South Lebanon",
+            "country": "Lebanon"
+          }
+        },
+        {
+          "id": "al-burghuliyah",
+          "name": "Al-Burghuliyah",
+          "arabic_name": "البرغولية",
+          "shortName": "Al-Burghuliyah",
+          "latitude": 33.2600,
+          "longitude": 35.2300,
+          "type": "village",
+          "category": "village",
+          "population": 2000,
+          "address": {
+            "city": "Al-Burghuliyah",
+            "district": "Tyre",
+            "governorate": "South Lebanon",
+            "country": "Lebanon"
+          }
+        },
+        {
+          "id": "burj-ash-shamali",
+          "name": "Burj ash-Shamali",
+          "arabic_name": "برج الشمالي",
+          "shortName": "Burj ash-Shamali",
+          "latitude": 33.2800,
+          "longitude": 35.2100,
+          "type": "refugee_camp",
+          "category": "refugee_camp",
+          "population": 25000,
+          "address": {
+            "city": "Burj ash-Shamali",
+            "district": "Tyre",
+            "governorate": "South Lebanon",
+            "country": "Lebanon"
+          }
+        },
+        {
+          "id": "burj-rahal",
+          "name": "Burj Rahal",
+          "arabic_name": "برج رحال",
+          "shortName": "Burj Rahal",
+          "latitude": 33.2500,
+          "longitude": 35.2400,
+          "type": "village",
+          "category": "village",
+          "population": 3500,
+          "address": {
+            "city": "Burj Rahal",
+            "district": "Tyre",
+            "governorate": "South Lebanon",
+            "country": "Lebanon"
+          }
+        },
+        {
+          "id": "al-buss",
+          "name": "Al-Buss",
+          "arabic_name": "البص",
+          "shortName": "Al-Buss",
+          "latitude": 33.2900,
+          "longitude": 35.2000,
+          "type": "refugee_camp",
+          "category": "refugee_camp",
+          "population": 12000,
+          "address": {
+            "city": "Al-Buss",
+            "district": "Tyre",
+            "governorate": "South Lebanon",
+            "country": "Lebanon"
+          }
+        },
+        {
+          "id": "al-bustan",
+          "name": "Al-Bustan",
+          "arabic_name": "البستان",
+          "shortName": "Al-Bustan",
+          "latitude": 33.2700,
+          "longitude": 35.2400,
+          "type": "village",
+          "category": "village",
+          "population": 2800,
+          "address": {
+            "city": "Al-Bustan",
+            "district": "Tyre",
+            "governorate": "South Lebanon",
+            "country": "Lebanon"
+          }
+        },
+        {
+          "id": "debaal",
+          "name": "Debaal",
+          "arabic_name": "دبعال",
+          "shortName": "Debaal",
+          "latitude": 33.2400,
+          "longitude": 35.2700,
+          "type": "village",
+          "category": "village",
+          "population": 2200,
+          "address": {
+            "city": "Debaal",
+            "district": "Tyre",
+            "governorate": "South Lebanon",
+            "country": "Lebanon"
+          }
+        },
+        {
+          "id": "deir-aames",
+          "name": "Deir Aames",
+          "arabic_name": "دير عامص",
+          "shortName": "Deir Aames",
+          "latitude": 33.2300,
+          "longitude": 35.2800,
+          "type": "village",
+          "category": "village",
+          "population": 1800,
+          "address": {
+            "city": "Deir Aames",
+            "district": "Tyre",
+            "governorate": "South Lebanon",
+            "country": "Lebanon"
+          }
+        },
+        {
+          "id": "deir-kifa",
+          "name": "Deir Kifa",
+          "arabic_name": "دير كيفا",
+          "shortName": "Deir Kifa",
+          "latitude": 33.2100,
+          "longitude": 35.2900,
+          "type": "village",
+          "category": "village",
+          "population": 3200,
+          "address": {
+            "city": "Deir Kifa",
+            "district": "Tyre",
+            "governorate": "South Lebanon",
+            "country": "Lebanon"
+          }
+        },
+        {
+          "id": "deir-qanoun-an-naher",
+          "name": "Deir Qanoun an-Naher",
+          "arabic_name": "دير قانون النهر",
+          "shortName": "Deir Qanoun an-Naher",
+          "latitude": 33.2200,
+          "longitude": 35.3000,
+          "type": "village",
+          "category": "village",
+          "population": 2500,
+          "address": {
+            "city": "Deir Qanoun an-Naher",
+            "district": "Tyre",
+            "governorate": "South Lebanon",
+            "country": "Lebanon"
+          }
+        },
+        {
+          "id": "deir-qanoun-ras-al-ain",
+          "name": "Deir Qanoun Ras al-Ain",
+          "arabic_name": "دير قانون رأس العين",
+          "shortName": "Deir Qanoun Ras al-Ain",
+          "latitude": 33.2000,
+          "longitude": 35.3100,
+          "type": "village",
+          "category": "village",
+          "population": 2200,
+          "address": {
+            "city": "Deir Qanoun Ras al-Ain",
+            "district": "Tyre",
+            "governorate": "South Lebanon",
+            "country": "Lebanon"
+          }
+        },
+        {
+          "id": "derdghaya",
+          "name": "Derdghaya",
+          "arabic_name": "دردغايا",
+          "shortName": "Derdghaya",
+          "latitude": 33.1900,
+          "longitude": 35.2700,
+          "type": "village",
+          "category": "village",
+          "population": 1600,
+          "address": {
+            "city": "Derdghaya",
+            "district": "Tyre",
+            "governorate": "South Lebanon",
+            "country": "Lebanon"
+          }
+        },
+        {
+          "id": "ad-duhairah",
+          "name": "Ad-Duhairah",
+          "arabic_name": "الضهيرة",
+          "shortName": "Ad-Duhairah",
+          "latitude": 33.2500,
+          "longitude": 35.2800,
+          "type": "village",
+          "category": "village",
+          "population": 1400,
+          "address": {
+            "city": "Ad-Duhairah",
+            "district": "Tyre",
+            "governorate": "South Lebanon",
+            "country": "Lebanon"
+          }
+        },
+        {
+          "id": "al-halloussiyah",
+          "name": "Al-Halloussiyah",
+          "arabic_name": "الحلوسية",
+          "shortName": "Al-Halloussiyah",
+          "latitude": 33.2600,
+          "longitude": 35.2900,
+          "type": "village",
+          "category": "village",
+          "population": 1800,
+          "address": {
+            "city": "Al-Halloussiyah",
+            "district": "Tyre",
+            "governorate": "South Lebanon",
+            "country": "Lebanon"
+          }
+        },
+        {
+          "id": "al-hamairi",
+          "name": "Al-Hamairi",
+          "arabic_name": "الحميري",
+          "shortName": "Al-Hamairi",
+          "latitude": 33.2400,
+          "longitude": 35.3000,
+          "type": "village",
+          "category": "village",
+          "population": 1200,
+          "address": {
+            "city": "Al-Hamairi",
+            "district": "Tyre",
+            "governorate": "South Lebanon",
+            "country": "Lebanon"
+          }
+        },
+        {
+          "id": "hannaouiyah",
+          "name": "Hannaouiyah",
+          "arabic_name": "حناوية",
+          "shortName": "Hannaouiyah",
+          "latitude": 33.2300,
+          "longitude": 35.3100,
+          "type": "village",
+          "category": "village",
+          "population": 1500,
+          "address": {
+            "city": "Hannaouiyah",
+            "district": "Tyre",
+            "governorate": "South Lebanon",
+            "country": "Lebanon"
+          }
+        },
+        {
+          "id": "al-hanniye",
+          "name": "Al-Hanniye",
+          "arabic_name": "الحنية",
+          "shortName": "Al-Hanniye",
+          "latitude": 33.2200,
+          "longitude": 35.3200,
+          "type": "village",
+          "category": "village",
+          "population": 1300,
+          "address": {
+            "city": "Al-Hanniye",
+            "district": "Tyre",
+            "governorate": "South Lebanon",
+            "country": "Lebanon"
+          }
+        },
+        {
+          "id": "jannata",
+          "name": "Jannata",
+          "arabic_name": "جناتا",
+          "shortName": "Jannata",
+          "latitude": 33.2100,
+          "longitude": 35.3300,
+          "type": "village",
+          "category": "village",
+          "population": 1700,
+          "address": {
+            "city": "Jannata",
+            "district": "Tyre",
+            "governorate": "South Lebanon",
+            "country": "Lebanon"
+          }
+        },
+        {
+          "id": "jebal-al-bottom",
+          "name": "Jebal al-Bottom",
+          "arabic_name": "جبل البطم",
+          "shortName": "Jebal al-Bottom",
+          "latitude": 33.2000,
+          "longitude": 35.3400,
+          "type": "village",
+          "category": "village",
+          "population": 1400,
+          "address": {
+            "city": "Jebal al-Bottom",
+            "district": "Tyre",
+            "governorate": "South Lebanon",
+            "country": "Lebanon"
+          }
+        },
+        {
+          "id": "al-jibbain",
+          "name": "Al-Jibbain",
+          "arabic_name": "الجبين",
+          "shortName": "Al-Jibbain",
+          "latitude": 33.1900,
+          "longitude": 35.3500,
+          "type": "village",
+          "category": "village",
+          "population": 2000,
+          "address": {
+            "city": "Al-Jibbain",
+            "district": "Tyre",
+            "governorate": "South Lebanon",
+            "country": "Lebanon"
+          }
+        },
+        {
+          "id": "jbein",
+          "name": "Jbein",
+          "arabic_name": "جبين",
+          "shortName": "Jbein",
+          "latitude": 33.1900,
+          "longitude": 35.3500,
+          "type": "village",
+          "category": "village",
+          "population": 2000,
+          "address": {
+            "city": "Jbein",
+            "district": "Tyre",
+            "governorate": "South Lebanon",
+            "country": "Lebanon"
+          }
+        },
+        {
+          "id": "jwaya",
+          "name": "Jwaya",
+          "arabic_name": "جوايا",
+          "shortName": "Jwaya",
+          "latitude": 33.1800,
+          "longitude": 35.3600,
+          "type": "village",
+          "category": "village",
+          "population": 1600,
+          "address": {
+            "city": "Jwaya",
+            "district": "Tyre",
+            "governorate": "South Lebanon",
+            "country": "Lebanon"
+          }
+        },
+        {
+          "id": "al-knaissah",
+          "name": "Al-Knaissah",
+          "arabic_name": "الكنيسة",
+          "shortName": "Al-Knaissah",
+          "latitude": 33.1700,
+          "longitude": 35.3700,
+          "type": "village",
+          "category": "village",
+          "population": 1200,
+          "address": {
+            "city": "Al-Knaissah",
+            "district": "Tyre",
+            "governorate": "South Lebanon",
+            "country": "Lebanon"
+          }
+        },
+        {
+          "id": "maarakah",
+          "name": "Maarakah",
+          "arabic_name": "معركة",
+          "shortName": "Maarakah",
+          "latitude": 33.1600,
+          "longitude": 35.3800,
+          "type": "village",
+          "category": "village",
+          "population": 1800,
+          "address": {
+            "city": "Maarakah",
+            "district": "Tyre",
+            "governorate": "South Lebanon",
+            "country": "Lebanon"
+          }
+        },
+        {
+          "id": "maaroub",
+          "name": "Maaroub",
+          "arabic_name": "معروب",
+          "shortName": "Maaroub",
+          "latitude": 33.1500,
+          "longitude": 35.3900,
+          "type": "village",
+          "category": "village",
+          "population": 1400,
+          "address": {
+            "city": "Maaroub",
+            "district": "Tyre",
+            "governorate": "South Lebanon",
+            "country": "Lebanon"
+          }
+        },
+        {
+          "id": "mahrouna",
+          "name": "Mahrouna",
+          "arabic_name": "محرونة",
+          "shortName": "Mahrouna",
+          "latitude": 33.1400,
+          "longitude": 35.4000,
+          "type": "village",
+          "category": "village",
+          "population": 1600,
+          "address": {
+            "city": "Mahrouna",
+            "district": "Tyre",
+            "governorate": "South Lebanon",
+            "country": "Lebanon"
+          }
+        },
+        {
+          "id": "al-majadel",
+          "name": "Al-Majadel",
+          "arabic_name": "المجادل",
+          "shortName": "Al-Majadel",
+          "latitude": 33.1300,
+          "longitude": 35.4100,
+          "type": "village",
+          "category": "village",
+          "population": 2200,
+          "address": {
+            "city": "Al-Majadel",
+            "district": "Tyre",
+            "governorate": "South Lebanon",
+            "country": "Lebanon"
+          }
+        },
+        {
+          "id": "majdal-zoun",
+          "name": "Majdal Zoun",
+          "arabic_name": "مجدل زون",
+          "shortName": "Majdal Zoun",
+          "latitude": 33.1200,
+          "longitude": 35.4200,
+          "type": "village",
+          "category": "village",
+          "population": 3500,
+          "address": {
+            "city": "Majdal Zoun",
+            "district": "Tyre",
+            "governorate": "South Lebanon",
+            "country": "Lebanon"
+          }
+        },
+        {
+          "id": "majdalzoun",
+          "name": "Majdalzoun",
+          "arabic_name": "مجدل زون",
+          "shortName": "Majdalzoun",
+          "latitude": 33.1200,
+          "longitude": 35.4200,
+          "type": "village",
+          "category": "village",
+          "population": 3500,
+          "address": {
+            "city": "Majdalzoun",
+            "district": "Tyre",
+            "governorate": "South Lebanon",
+            "country": "Lebanon"
+          }
+        },
+        {
+          "id": "malikiyat-as-sahel",
+          "name": "Malikiyat as-Sahel",
+          "arabic_name": "ملكية الساحل",
+          "shortName": "Malikiyat as-Sahel",
+          "latitude": 33.2800,
+          "longitude": 35.1900,
+          "type": "village",
+          "category": "village",
+          "population": 1500,
+          "address": {
+            "city": "Malikiyat as-Sahel",
+            "district": "Tyre",
+            "governorate": "South Lebanon",
+            "country": "Lebanon"
+          }
+        },
+        {
+          "id": "al-mansouri",
+          "name": "Al-Mansouri",
+          "arabic_name": "المنصوري",
+          "shortName": "Al-Mansouri",
+          "latitude": 33.1100,
+          "longitude": 35.4300,
+          "type": "village",
+          "category": "village",
+          "population": 2800,
+          "address": {
+            "city": "Al-Mansouri",
+            "district": "Tyre",
+            "governorate": "South Lebanon",
+            "country": "Lebanon"
+          }
+        },
+        {
+          "id": "marwahin",
+          "name": "Marwahin",
+          "arabic_name": "مرواحين",
+          "shortName": "Marwahin",
+          "latitude": 33.1000,
+          "longitude": 35.4400,
+          "type": "village",
+          "category": "village",
+          "population": 2200,
+          "address": {
+            "city": "Marwahin",
+            "district": "Tyre",
+            "governorate": "South Lebanon",
+            "country": "Lebanon"
+          }
+        },
+        {
+          "id": "mazraat-meshref",
+          "name": "Mazraat Meshref",
+          "arabic_name": "مزرعة مشرف",
+          "shortName": "Mazraat Meshref",
+          "latitude": 33.0900,
+          "longitude": 35.4500,
+          "type": "village",
+          "category": "village",
+          "population": 1400,
+          "address": {
+            "city": "Mazraat Meshref",
+            "district": "Tyre",
+            "governorate": "South Lebanon",
+            "country": "Lebanon"
+          }
+        },
+        {
+          "id": "an-naffakhiyah",
+          "name": "An-Naffakhiyah",
+          "arabic_name": "النفاخية",
+          "shortName": "An-Naffakhiyah",
+          "latitude": 33.0800,
+          "longitude": 35.4600,
+          "type": "village",
+          "category": "village",
+          "population": 1200,
+          "address": {
+            "city": "An-Naffakhiyah",
+            "district": "Tyre",
+            "governorate": "South Lebanon",
+            "country": "Lebanon"
+          }
+        },
+        {
+          "id": "an-naqoura",
+          "name": "An-Naqoura",
+          "arabic_name": "الناقورة",
+          "shortName": "An-Naqoura",
+          "latitude": 33.1100,
+          "longitude": 35.1400,
+          "type": "village",
+          "category": "border_town",
+          "population": 2500,
+          "address": {
+            "city": "An-Naqoura",
+            "district": "Tyre",
+            "governorate": "South Lebanon",
+            "country": "Lebanon"
+          }
+        },
+        {
+          "id": "qana",
+          "name": "Qana",
+          "arabic_name": "قانا",
+          "shortName": "Qana",
+          "latitude": 33.2100,
+          "longitude": 35.3100,
+          "type": "village",
+          "category": "historic_village",
+          "population": 4500,
+          "address": {
+            "city": "Qana",
+            "district": "Tyre",
+            "governorate": "South Lebanon",
+            "country": "Lebanon"
+          }
+        },
+        {
+          "id": "al-qlailah",
+          "name": "Al-Qlailah",
+          "arabic_name": "القليلة",
+          "shortName": "Al-Qlailah",
+          "latitude": 33.2000,
+          "longitude": 35.3200,
+          "type": "village",
+          "category": "village",
+          "population": 1800,
+          "address": {
+            "city": "Al-Qlailah",
+            "district": "Tyre",
+            "governorate": "South Lebanon",
+            "country": "Lebanon"
+          }
+        },
+        {
+          "id": "ar-ramadiyah",
+          "name": "Ar-Ramadiyah",
+          "arabic_name": "الرمادية",
+          "shortName": "Ar-Ramadiyah",
+          "latitude": 33.1900,
+          "longitude": 35.3300,
+          "type": "village",
+          "category": "village",
+          "population": 1600,
+          "address": {
+            "city": "Ar-Ramadiyah",
+            "district": "Tyre",
+            "governorate": "South Lebanon",
+            "country": "Lebanon"
+          }
+        },
+        {
+          "id": "ar-rashidiyah",
+          "name": "Ar-Rashidiyah",
+          "arabic_name": "الرشيدية",
+          "shortName": "Ar-Rashidiyah",
+          "latitude": 33.2900,
+          "longitude": 35.1800,
+          "type": "refugee_camp",
+          "category": "refugee_camp",
+          "population": 30000,
+          "address": {
+            "city": "Ar-Rashidiyah",
+            "district": "Tyre",
+            "governorate": "South Lebanon",
+            "country": "Lebanon"
+          }
+        },
+        {
+          "id": "reshknanay",
+          "name": "Reshknanay",
+          "arabic_name": "ريشكنانايا",
+          "shortName": "Reshknanay",
+          "latitude": 33.1800,
+          "longitude": 35.3400,
+          "type": "village",
+          "category": "village",
+          "population": 1200,
+          "address": {
+            "city": "Reshknanay",
+            "district": "Tyre",
+            "governorate": "South Lebanon",
+            "country": "Lebanon"
+          }
+        },
+        {
+          "id": "as-sammaaiyah",
+          "name": "As-Sammaaiyah",
+          "arabic_name": "السماعية",
+          "shortName": "As-Sammaaiyah",
+          "latitude": 33.1700,
+          "longitude": 35.3500,
+          "type": "village",
+          "category": "village",
+          "population": 1400,
+          "address": {
+            "city": "As-Sammaaiyah",
+            "district": "Tyre",
+            "governorate": "South Lebanon",
+            "country": "Lebanon"
+          }
+        },
+        {
+          "id": "seddiqin",
+          "name": "Seddiqin",
+          "arabic_name": "صديقين",
+          "shortName": "Seddiqin",
+          "latitude": 33.1600,
+          "longitude": 35.3600,
+          "type": "village",
+          "category": "village",
+          "population": 2200,
+          "address": {
+            "city": "Seddiqin",
+            "district": "Tyre",
+            "governorate": "South Lebanon",
+            "country": "Lebanon"
+          }
+        },
+        {
+          "id": "selaa",
+          "name": "Selaa",
+          "arabic_name": "سلعا",
+          "shortName": "Selaa",
+          "latitude": 33.1500,
+          "longitude": 35.3700,
+          "type": "village",
+          "category": "village",
+          "population": 1800,
+          "address": {
+            "city": "Selaa",
+            "district": "Tyre",
+            "governorate": "South Lebanon",
+            "country": "Lebanon"
+          }
+        },
+        {
+          "id": "ash-shaaitiyah",
+          "name": "Ash-Shaaitiyah",
+          "arabic_name": "الشعيطية",
+          "shortName": "Ash-Shaaitiyah",
+          "latitude": 33.1400,
+          "longitude": 35.3800,
+          "type": "village",
+          "category": "village",
+          "population": 1200,
+          "address": {
+            "city": "Ash-Shaaitiyah",
+            "district": "Tyre",
+            "governorate": "South Lebanon",
+            "country": "Lebanon"
+          }
+        },
+        {
+          "id": "shabriha",
+          "name": "Shabriha",
+          "arabic_name": "شبريحا",
+          "shortName": "Shabriha",
+          "latitude": 33.1300,
+          "longitude": 35.3900,
+          "type": "village",
+          "category": "village",
+          "population": 1600,
+          "address": {
+            "city": "Shabriha",
+            "district": "Tyre",
+            "governorate": "South Lebanon",
+            "country": "Lebanon"
+          }
+        },
+        {
+          "id": "shhabeye",
+          "name": "Shhabeye",
+          "arabic_name": "شحابية",
+          "shortName": "Shhabeye",
+          "latitude": 33.1200,
+          "longitude": 35.4000,
+          "type": "village",
+          "category": "village",
+          "population": 2000,
+          "address": {
+            "city": "Shhabeye",
+            "district": "Tyre",
+            "governorate": "South Lebanon",
+            "country": "Lebanon"
+          }
+        },
+        {
+          "id": "ash-shihabiyah",
+          "name": "Ash-Shihabiyah",
+          "arabic_name": "الشهابية",
+          "shortName": "Ash-Shihabiyah",
+          "latitude": 33.1200,
+          "longitude": 35.4000,
+          "type": "village",
+          "category": "village",
+          "population": 2000,
+          "address": {
+            "city": "Ash-Shihabiyah",
+            "district": "Tyre",
+            "governorate": "South Lebanon",
+            "country": "Lebanon"
+          }
+        },
+        {
+          "id": "chehabiyeh",
+          "name": "Chehabiyeh",
+          "arabic_name": "شحابية",
+          "shortName": "Chehabiyeh",
+          "latitude": 33.1200,
+          "longitude": 35.4000,
+          "type": "village",
+          "category": "village",
+          "population": 2000,
+          "address": {
+            "city": "Chehabiyeh",
+            "district": "Tyre",
+            "governorate": "South Lebanon",
+            "country": "Lebanon"
+          }
+        },
+        {
+          "id": "shamaa",
+          "name": "Shamaa",
+          "arabic_name": "شمع",
+          "shortName": "Shamaa",
+          "latitude": 33.1100,
+          "longitude": 35.4100,
+          "type": "village",
+          "category": "village",
+          "population": 1800,
+          "address": {
+            "city": "Shamaa",
+            "district": "Tyre",
+            "governorate": "South Lebanon",
+            "country": "Lebanon"
+          }
+        },
+        {
+          "id": "shehour",
+          "name": "Shehour",
+          "arabic_name": "شحور",
+          "shortName": "Shehour",
+          "latitude": 33.1000,
+          "longitude": 35.4200,
+          "type": "village",
+          "category": "village",
+          "population": 1600,
+          "address": {
+            "city": "Shehour",
+            "district": "Tyre",
+            "governorate": "South Lebanon",
+            "country": "Lebanon"
+          }
+        },
+        {
+          "id": "shihin",
+          "name": "Shihin",
+          "arabic_name": "شيحين",
+          "shortName": "Shihin",
+          "latitude": 33.0900,
+          "longitude": 35.4300,
+          "type": "village",
+          "category": "village",
+          "population": 1400,
+          "address": {
+            "city": "Shihin",
+            "district": "Tyre",
+            "governorate": "South Lebanon",
+            "country": "Lebanon"
+          }
+        },
+        {
+          "id": "srifa",
+          "name": "Srifa",
+          "arabic_name": "صريفا",
+          "shortName": "Srifa",
+          "latitude": 33.2500,
+          "longitude": 35.3500,
+          "type": "village",
+          "category": "village",
+          "population": 8000,
+          "address": {
+            "city": "Srifa",
+            "district": "Tyre",
+            "governorate": "South Lebanon",
+            "country": "Lebanon"
+          }
+        },
+        {
+          "id": "tayr-debba",
+          "name": "Tayr Debba",
+          "arabic_name": "طير دبا",
+          "shortName": "Tayr Debba",
+          "latitude": 33.2742,
+          "longitude": 35.2786,
+          "type": "village",
+          "category": "village",
+          "population": 4500,
+          "address": {
+            "city": "Tayr Debba",
+            "district": "Tyre",
+            "governorate": "South Lebanon",
+            "country": "Lebanon"
+          }
+        },
+        {
+          "id": "tayr-felsay",
+          "name": "Tayr Felsay",
+          "arabic_name": "طير فلسي",
+          "shortName": "Tayr Felsay",
+          "latitude": 33.2600,
+          "longitude": 35.2700,
+          "type": "village",
+          "category": "village",
+          "population": 2800,
+          "address": {
+            "city": "Tayr Felsay",
+            "district": "Tyre",
+            "governorate": "South Lebanon",
+            "country": "Lebanon"
+          }
+        },
+        {
+          "id": "tayr-harfa",
+          "name": "Tayr Harfa",
+          "arabic_name": "طير حرفا",
+          "shortName": "Tayr Harfa",
+          "latitude": 33.1264,
+          "longitude": 35.2192,
+          "type": "village",
+          "category": "village",
+          "population": 3200,
+          "address": {
+            "city": "Tayr Harfa",
+            "district": "Tyre",
+            "governorate": "South Lebanon",
+            "country": "Lebanon"
+          }
+        },
+        {
+          "id": "tair-harfa",
+          "name": "Tair Harfa",
+          "arabic_name": "طير حرفا",
+          "shortName": "Tair Harfa",
+          "latitude": 33.1264,
+          "longitude": 35.2192,
+          "type": "village",
+          "category": "village",
+          "population": 3200,
+          "address": {
+            "city": "Tair Harfa",
+            "district": "Tyre",
+            "governorate": "South Lebanon",
+            "country": "Lebanon"
+          }
+        },
+        {
+          "id": "toura",
+          "name": "Toura",
+          "arabic_name": "طورا",
+          "shortName": "Toura",
+          "latitude": 33.0800,
+          "longitude": 35.4400,
+          "type": "village",
+          "category": "village",
+          "population": 1200,
+          "address": {
+            "city": "Toura",
+            "district": "Tyre",
+            "governorate": "South Lebanon",
+            "country": "Lebanon"
+          }
+        },
+        {
+          "id": "wadi-jilou",
+          "name": "Wadi Jilou",
+          "arabic_name": "وادي جيلو",
+          "shortName": "Wadi Jilou",
+          "latitude": 33.0700,
+          "longitude": 35.4500,
+          "type": "village",
+          "category": "village",
+          "population": 1000,
+          "address": {
+            "city": "Wadi Jilou",
+            "district": "Tyre",
+            "governorate": "South Lebanon",
+            "country": "Lebanon"
+          }
+        },
+        {
+          "id": "yanouh-tyre",
+          "name": "Yanouh",
+          "arabic_name": "ينوح",
+          "shortName": "Yanouh",
+          "latitude": 33.0600,
+          "longitude": 35.4600,
+          "type": "village",
+          "category": "village",
+          "population": 1400,
+          "address": {
+            "city": "Yanouh",
+            "district": "Tyre",
+            "governorate": "South Lebanon",
+            "country": "Lebanon"
+          }
+        },
+        {
+          "id": "yarin",
+          "name": "Yarin",
+          "arabic_name": "يارين",
+          "shortName": "Yarin",
+          "latitude": 33.0500,
+          "longitude": 35.4700,
+          "type": "village",
+          "category": "village",
+          "population": 1800,
+          "address": {
+            "city": "Yarin",
+            "district": "Tyre",
+            "governorate": "South Lebanon",
+            "country": "Lebanon"
+          }
+        }
+      ]
+    }
+}
+       
