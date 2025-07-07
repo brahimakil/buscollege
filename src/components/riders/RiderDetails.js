@@ -258,7 +258,7 @@ const RiderDetails = ({ rider, onUpdatePayment, onClose }) => {
     const location = bus.locations.find(loc => 
       (loc.id === locationId) || 
       (`loc-${loc.id}` === locationId) ||
-      (loc.id === parseInt(locationId.replace('loc-', ''))) ||
+      (typeof locationId === 'string' && loc.id === parseInt(locationId.replace('loc-', ''))) ||
       (index => `loc-${index}` === locationId)
     );
     

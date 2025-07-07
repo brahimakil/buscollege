@@ -14,21 +14,109 @@ import {
 import { createUserWithEmailAndPassword } from "firebase/auth";
 import { db, secondaryAuth } from "../firebase/config";
 
-// Get all riders
+// Get all riders from buses collection (updated to read from currentRiders with complete user data)
 export const getAllRiders = async () => {
   try {
-    const ridersQuery = query(collection(db, "users"), where("role", "==", "rider"));
-    const querySnapshot = await getDocs(ridersQuery);
+    const busesQuery = query(collection(db, "buses"));
+    const busesSnapshot = await getDocs(busesQuery);
     
-    const riders = [];
-    querySnapshot.forEach((doc) => {
-      riders.push({ id: doc.id, ...doc.data() });
+    const ridersMap = new Map(); // Use Map to avoid duplicate riders
+    
+    // Process each bus and extract riders from currentRiders
+    busesSnapshot.forEach((busDoc) => {
+      const busData = busDoc.data();
+      const busId = busDoc.id;
+      const currentRiders = busData.currentRiders || [];
+      
+      currentRiders.forEach((rider) => {
+        if (typeof rider === 'object' && rider !== null && rider.id) {
+          const riderId = rider.id;
+          
+          // Create bus assignment info
+          const busAssignment = {
+            busId: busId,
+            busName: busData.busName || 'Unknown Bus',
+            subscriptionType: rider.subscriptionType || 'per_ride',
+            paymentStatus: rider.paymentStatus || 'unpaid',
+            locationId: rider.locationId || null
+          };
+          
+          if (ridersMap.has(riderId)) {
+            // Rider already exists, add this bus to their assignments
+            const existingRider = ridersMap.get(riderId);
+            existingRider.busAssignments.push(busAssignment);
+          } else {
+            // New rider, create entry with minimal data for now
+            ridersMap.set(riderId, {
+              id: riderId,
+              busAssignments: [busAssignment]
+            });
+          }
+        }
+      });
     });
     
-    return { riders };
+    // Now fetch complete user data for each rider from users collection
+    const riderIds = Array.from(ridersMap.keys());
+    const completeRiders = [];
+    
+    for (const riderId of riderIds) {
+      try {
+        const userDoc = await getDoc(doc(db, "users", riderId));
+        const riderData = ridersMap.get(riderId);
+        
+        if (userDoc.exists()) {
+          const userData = userDoc.data();
+          completeRiders.push({
+            id: riderId,
+            // Use complete user data from users collection
+            name: userData.name || userData.fullName || 'Unknown Name',
+            fullName: userData.fullName || userData.name || 'Unknown Name',
+            email: userData.email || 'No email',
+            phoneNumber: userData.phoneNumber || 'No phone',
+            address: userData.address || 'N/A',
+            emergencyContact: userData.emergencyContact || 'N/A',
+            accountStatus: userData.accountStatus || 'active',
+            role: userData.role || 'rider',
+            createdAt: userData.createdAt,
+            updatedAt: userData.updatedAt,
+            // Include bus assignments from buses collection
+            busAssignments: riderData.busAssignments
+          });
+        } else {
+          // User not found in users collection, use minimal data
+          completeRiders.push({
+            id: riderId,
+            name: 'Unknown User',
+            fullName: 'Unknown User',
+            email: 'No email',
+            phoneNumber: 'No phone',
+            address: 'N/A',
+            emergencyContact: 'N/A',
+            busAssignments: riderData.busAssignments
+          });
+        }
+      } catch (error) {
+        console.error(`Error fetching user data for rider ${riderId}:`, error);
+        // Add rider with minimal data if fetch fails
+        const riderData = ridersMap.get(riderId);
+        completeRiders.push({
+          id: riderId,
+          name: 'Unknown User',
+          fullName: 'Unknown User',
+          email: 'No email',
+          phoneNumber: 'No phone',
+          address: 'N/A',
+          emergencyContact: 'N/A',
+          busAssignments: riderData.busAssignments
+        });
+      }
+    }
+    
+    return { riders: completeRiders };
   } catch (error) {
-    console.error("Error getting riders:", error);
-    return { error };
+    console.error("Error getting riders from buses:", error);
+    return { error: error.message };
   }
 };
 
