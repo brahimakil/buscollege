@@ -1,8 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { colors, spacing, shadows, typography } from '../themes/theme';
-import { collection, query, where, getDocs, orderBy, limit } from 'firebase/firestore';
-import { db } from '../firebase/config';
+import { 
+  getNotifications, 
+  markAsRead, 
+  markAllAsRead, 
+  getUnreadCount 
+} from '../services/notificationService';
 
 const Header = ({ onMenuToggle, isMobile, sidebarOpen }) => {
   const { currentUser } = useAuth();
@@ -10,83 +14,67 @@ const Header = ({ onMenuToggle, isMobile, sidebarOpen }) => {
   const [showNotifications, setShowNotifications] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
 
-  // Fetch real notifications from database
+  // Load notifications from local storage
   useEffect(() => {
-    const fetchNotifications = async () => {
-      try {
-        // Get recent bus assignments that need attention
-        const busesQuery = query(
-          collection(db, "buses"),
-          orderBy("updatedAt", "desc"),
-          limit(5)
-        );
-        const busesSnapshot = await getDocs(busesQuery);
+    const loadNotifications = () => {
+      const localNotifications = getNotifications();
+      setNotifications(localNotifications);
+      setUnreadCount(getUnreadCount());
+    };
 
-        // Get riders with pending payments
-        const ridersQuery = query(
-          collection(db, "users"),
-          where("role", "==", "rider"),
-          orderBy("createdAt", "desc"),
-          limit(10)
-        );
-        const ridersSnapshot = await getDocs(ridersQuery);
+    loadNotifications();
+    
+    // Listen for notification events - immediate updates
+    const handleNotificationAdded = (event) => {
+      const { allNotifications } = event.detail;
+      setNotifications(allNotifications);
+      setUnreadCount(getUnreadCount());
+    };
 
-        const newNotifications = [];
-        
-        // Add bus-related notifications
-        busesSnapshot.forEach(doc => {
-          const busData = doc.data();
-          const now = new Date();
-          const updatedTime = busData.updatedAt?.toDate() || new Date();
-          const timeDiff = now - updatedTime;
-          
-          if (timeDiff < 24 * 60 * 60 * 1000) { // Within 24 hours
-            newNotifications.push({
-              id: `bus-${doc.id}`,
-              title: `Bus ${busData.busName} updated`,
-              message: `Route and schedule information changed`,
-              time: updatedTime,
-              type: 'bus',
-              unread: true
-            });
-          }
-        });
+    const handleNotificationRead = (event) => {
+      const { allNotifications } = event.detail;
+      setNotifications(allNotifications);
+      setUnreadCount(getUnreadCount());
+    };
 
-        // Add rider payment notifications
-        let pendingPayments = 0;
-        ridersSnapshot.forEach(doc => {
-          const riderData = doc.data();
-          if (riderData.busAssignments) {
-            riderData.busAssignments.forEach(assignment => {
-              if (assignment.paymentStatus === 'pending' || assignment.paymentStatus === 'unpaid') {
-                pendingPayments++;
-              }
-            });
-          }
-        });
+    const handleAllNotificationsRead = (event) => {
+      const { allNotifications } = event.detail;
+      setNotifications(allNotifications);
+      setUnreadCount(0);
+    };
 
-        if (pendingPayments > 0) {
-          newNotifications.push({
-            id: 'payments-pending',
-            title: 'Payment Alerts',
-            message: `${pendingPayments} pending payments require attention`,
-            time: new Date(),
-            type: 'payment',
-            unread: true
-          });
-        }
+    const handleNotificationsCleared = (event) => {
+      const { allNotifications } = event.detail;
+      setNotifications(allNotifications);
+      setUnreadCount(0);
+    };
 
-        setNotifications(newNotifications);
-        setUnreadCount(newNotifications.filter(n => n.unread).length);
-      } catch (error) {
-        console.error("Error fetching notifications:", error);
+    // Add event listeners for immediate updates
+    window.addEventListener('notificationAdded', handleNotificationAdded);
+    window.addEventListener('notificationRead', handleNotificationRead);
+    window.addEventListener('allNotificationsRead', handleAllNotificationsRead);
+    window.addEventListener('notificationsCleared', handleNotificationsCleared);
+    
+    // Listen for storage changes (in case notifications are added from other tabs)
+    const handleStorageChange = (e) => {
+      if (e.key === 'buscollege_notifications') {
+        loadNotifications();
       }
     };
 
-    fetchNotifications();
-    // Refresh notifications every 5 minutes
-    const interval = setInterval(fetchNotifications, 5 * 60 * 1000);
-    return () => clearInterval(interval);
+    window.addEventListener('storage', handleStorageChange);
+    
+    // Refresh notifications every 30 seconds as backup
+    const interval = setInterval(loadNotifications, 30000);
+    
+    return () => {
+      window.removeEventListener('notificationAdded', handleNotificationAdded);
+      window.removeEventListener('notificationRead', handleNotificationRead);
+      window.removeEventListener('allNotificationsRead', handleAllNotificationsRead);
+      window.removeEventListener('notificationsCleared', handleNotificationsCleared);
+      window.removeEventListener('storage', handleStorageChange);
+      clearInterval(interval);
+    };
   }, []);
 
   const styles = {
@@ -165,6 +153,12 @@ const Header = ({ onMenuToggle, isMobile, sidebarOpen }) => {
       alignItems: 'center',
       justifyContent: 'center',
       fontWeight: 'bold',
+      animation: unreadCount > 0 ? 'pulse 2s infinite' : 'none',
+    },
+    '@keyframes pulse': {
+      '0%': { transform: 'scale(1)' },
+      '50%': { transform: 'scale(1.1)' },
+      '100%': { transform: 'scale(1)' },
     },
     notificationDropdown: {
       position: 'absolute',
@@ -184,6 +178,23 @@ const Header = ({ onMenuToggle, isMobile, sidebarOpen }) => {
       borderBottom: `1px solid ${colors.border.light}`,
       fontWeight: typography.fontWeightMedium,
       color: colors.text.primary,
+      display: 'flex',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+    },
+    notificationHeaderActions: {
+      display: 'flex',
+      gap: spacing.sm,
+    },
+    clearAllButton: {
+      backgroundColor: 'transparent',
+      border: 'none',
+      color: colors.primary.main,
+      fontSize: '0.8rem',
+      cursor: 'pointer',
+      padding: '4px 8px',
+      borderRadius: '4px',
+      transition: 'background-color 0.2s',
     },
     notificationItem: {
       padding: spacing.md,
@@ -207,9 +218,16 @@ const Header = ({ onMenuToggle, isMobile, sidebarOpen }) => {
       fontSize: '0.75rem',
       marginTop: spacing.xs,
     },
+    emptyNotifications: {
+      padding: spacing.lg,
+      textAlign: 'center',
+      color: colors.text.secondary,
+      fontSize: '0.9rem',
+    },
   };
 
-  const formatNotificationTime = (time) => {
+  const formatNotificationTime = (timeString) => {
+    const time = new Date(timeString);
     const now = new Date();
     const diff = now - time;
     const minutes = Math.floor(diff / (1000 * 60));
@@ -223,12 +241,15 @@ const Header = ({ onMenuToggle, isMobile, sidebarOpen }) => {
   };
 
   const handleNotificationClick = (notification) => {
-    setNotifications(prev => 
-      prev.map(n => 
-        n.id === notification.id ? { ...n, unread: false } : n
-      )
-    );
-    setUnreadCount(prev => Math.max(0, prev - 1));
+    if (notification.unread) {
+      markAsRead(notification.id);
+      // Don't manually update state here - let the event handler do it
+    }
+  };
+
+  const handleMarkAllAsRead = () => {
+    markAllAsRead();
+    // Don't manually update state here - let the event handler do it
   };
 
   const handleNotificationButtonHover = (e, isHovering) => {
@@ -247,77 +268,115 @@ const Header = ({ onMenuToggle, isMobile, sidebarOpen }) => {
     }
   };
 
+  const handleClearAllHover = (e, isHovering) => {
+    if (isHovering) {
+      e.target.style.backgroundColor = 'rgba(59, 130, 246, 0.1)';
+    } else {
+      e.target.style.backgroundColor = 'transparent';
+    }
+  };
+
   return (
-    <header style={styles.header}>
-      <div style={styles.leftSection}>
-        <button 
-          style={styles.menuButton}
-          onClick={onMenuToggle}
-          onMouseEnter={(e) => handleMenuButtonHover(e, true)}
-          onMouseLeave={(e) => handleMenuButtonHover(e, false)}
-          title={sidebarOpen ? "Close Menu" : "Open Menu"}
-        >
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
-            <path d="M3 18h18v-2H3v2zm0-5h18v-2H3v2zm0-7v2h18V6H3z"/>
-          </svg>
-        </button>
-        
-        <h1 style={styles.title}>Bus College Admin</h1>
-      </div>
+    <>
+      {/* Add CSS for pulse animation */}
+      <style>
+        {`
+          @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+            100% { transform: scale(1); }
+          }
+        `}
+      </style>
       
-      <div style={styles.userInfo}>
-        {/* Notifications */}
-        <div style={{ position: 'relative' }}>
+      <header style={styles.header}>
+        <div style={styles.leftSection}>
           <button 
-            style={styles.notificationButton}
-            onClick={() => setShowNotifications(!showNotifications)}
-            onMouseEnter={(e) => handleNotificationButtonHover(e, true)}
-            onMouseLeave={(e) => handleNotificationButtonHover(e, false)}
+            style={styles.menuButton}
+            onClick={onMenuToggle}
+            onMouseEnter={(e) => handleMenuButtonHover(e, true)}
+            onMouseLeave={(e) => handleMenuButtonHover(e, false)}
+            title={sidebarOpen ? "Close Menu" : "Open Menu"}
           >
-            🔔
-            {unreadCount > 0 && (
-              <span style={styles.notificationBadge}>
-                {unreadCount > 9 ? '9+' : unreadCount}
-              </span>
-            )}
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M3 18h18v-2H3v2zm0-5h18v-2H3v2zm0-7v2h18V6H3z"/>
+            </svg>
           </button>
           
-          {showNotifications && (
-            <div style={styles.notificationDropdown}>
-              <div style={styles.notificationHeader}>
-                Recent Notifications
-              </div>
-              {notifications.length > 0 ? (
-                notifications.map(notification => (
-                  <div 
-                    key={notification.id}
-                    style={{
-                      ...styles.notificationItem,
-                      backgroundColor: notification.unread ? '#f3f4f6' : 'transparent'
-                    }}
-                    onClick={() => handleNotificationClick(notification)}
-                    onMouseEnter={(e) => e.target.style.backgroundColor = '#e5e7eb'}
-                    onMouseLeave={(e) => e.target.style.backgroundColor = notification.unread ? '#f3f4f6' : 'transparent'}
-                  >
-                    <h4 style={styles.notificationTitle}>{notification.title}</h4>
-                    <p style={styles.notificationMessage}>{notification.message}</p>
-                    <span style={styles.notificationTime}>{formatNotificationTime(notification.time)}</span>
-                  </div>
-                ))
-              ) : (
-                <div style={styles.notificationItem}>
-                  <p style={styles.notificationMessage}>No new notifications</p>
-                </div>
-              )}
-            </div>
-          )}
+          <h1 style={styles.title}>Bus College Admin</h1>
         </div>
         
-        <span style={styles.userText}>
-          Welcome, {currentUser?.displayName || currentUser?.email || 'User'}
-        </span>
-      </div>
-    </header>
+        <div style={styles.userInfo}>
+          {/* Notifications */}
+          <div style={{ position: 'relative' }}>
+            <button 
+              style={styles.notificationButton}
+              onClick={() => setShowNotifications(!showNotifications)}
+              onMouseEnter={(e) => handleNotificationButtonHover(e, true)}
+              onMouseLeave={(e) => handleNotificationButtonHover(e, false)}
+              title={`${unreadCount} unread notifications`}
+            >
+              🔔
+              {unreadCount > 0 && (
+                <span style={styles.notificationBadge}>
+                  {unreadCount > 9 ? '9+' : unreadCount}
+                </span>
+              )}
+            </button>
+            
+            {showNotifications && (
+              <div style={styles.notificationDropdown}>
+                <div style={styles.notificationHeader}>
+                  <span>Recent Notifications</span>
+                  <div style={styles.notificationHeaderActions}>
+                    {unreadCount > 0 && (
+                      <button 
+                        style={styles.clearAllButton}
+                        onClick={handleMarkAllAsRead}
+                        onMouseEnter={(e) => handleClearAllHover(e, true)}
+                        onMouseLeave={(e) => handleClearAllHover(e, false)}
+                        title="Mark all as read"
+                      >
+                        Mark all read
+                      </button>
+                    )}
+                  </div>
+                </div>
+                {notifications.length > 0 ? (
+                  notifications.map(notification => (
+                    <div 
+                      key={notification.id}
+                      style={{
+                        ...styles.notificationItem,
+                        backgroundColor: notification.unread ? '#f3f4f6' : 'transparent'
+                      }}
+                      onClick={() => handleNotificationClick(notification)}
+                      onMouseEnter={(e) => e.target.style.backgroundColor = '#e5e7eb'}
+                      onMouseLeave={(e) => e.target.style.backgroundColor = notification.unread ? '#f3f4f6' : 'transparent'}
+                    >
+                      <h4 style={styles.notificationTitle}>
+                        {notification.title}
+                        {notification.unread && <span style={{ color: colors.primary.main, marginLeft: '8px' }}>•</span>}
+                      </h4>
+                      <p style={styles.notificationMessage}>{notification.message}</p>
+                      <span style={styles.notificationTime}>{formatNotificationTime(notification.time)}</span>
+                    </div>
+                  ))
+                ) : (
+                  <div style={styles.emptyNotifications}>
+                    <p>No notifications yet</p>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+          
+          <span style={styles.userText}>
+            Welcome, {currentUser?.displayName || currentUser?.email || 'User'}
+          </span>
+        </div>
+      </header>
+    </>
   );
 };
 

@@ -13,6 +13,12 @@ import {
 } from "firebase/firestore";
 import { createUserWithEmailAndPassword } from "firebase/auth";
 import { db, secondaryAuth } from "../firebase/config";
+import { 
+  addRiderNotification, 
+  addPaymentNotification,
+  addRiderRemovedNotification,
+  NOTIFICATION_TYPES 
+} from './notificationService';
 
 // Get all riders from buses collection (updated to read from currentRiders with complete user data)
 export const getAllRiders = async () => {
@@ -160,6 +166,10 @@ export const createRider = async (riderData) => {
       busAssignments: []  // Initialize empty bus assignments
     });
     
+    // Add notification for rider creation
+    const riderName = riderDataWithoutPassword.name || riderDataWithoutPassword.fullName || 'Unknown Rider';
+    addRiderNotification(NOTIFICATION_TYPES.RIDER_CREATED, riderName);
+    
     // Sign out from the secondary auth instance to clean up
     await secondaryAuth.signOut();
     
@@ -180,6 +190,10 @@ export const updateRider = async (riderId, riderData) => {
     updateData.updatedAt = serverTimestamp();
     
     await updateDoc(doc(db, "users", riderId), updateData);
+    
+    // Add notification for rider update
+    const riderName = riderData.name || riderData.fullName || 'Unknown Rider';
+    addRiderNotification(NOTIFICATION_TYPES.RIDER_UPDATED, riderName);
     
     return { success: true };
   } catch (error) {
@@ -213,6 +227,15 @@ export const deleteRider = async (riderId) => {
     
     // If not assigned to any bus, proceed with deletion
     await deleteDoc(doc(db, "users", riderId));
+    
+    // Get rider data for notification before deletion
+    const riderDoc = await getDoc(doc(db, "users", riderId));
+    const riderName = riderDoc.exists() ? 
+      (riderDoc.data().name || riderDoc.data().fullName || 'Unknown Rider') : 
+      'Unknown Rider';
+    
+    // Add notification for rider deletion
+    addRiderNotification(NOTIFICATION_TYPES.RIDER_DELETED, riderName);
     
     return { success: true };
   } catch (error) {
@@ -432,7 +455,7 @@ export const updateRiderBusSubscription = async (riderId, busId, subscriptionTyp
 // Update rider's payment status for a specific bus - sync both collections
 export const updateRiderBusPaymentStatus = async (riderId, busId, paymentStatus) => {
   try {
-    // Update bus collection first
+    // Get bus and rider data for notifications
     const busRef = doc(db, "buses", busId);
     const busSnap = await getDoc(busRef);
     
@@ -441,6 +464,7 @@ export const updateRiderBusPaymentStatus = async (riderId, busId, paymentStatus)
     }
     
     const busData = busSnap.data();
+    const busName = busData.busName || 'Unknown Bus';
     const currentRiders = busData.currentRiders || [];
     
     // Find rider index in bus collection
@@ -455,15 +479,17 @@ export const updateRiderBusPaymentStatus = async (riderId, busId, paymentStatus)
     
     const currentRider = currentRiders[riderIndex];
     const updatedRiders = [...currentRiders];
+    let riderName = 'Unknown Rider';
     
     if (typeof currentRider === 'string') {
       try {
         const riderDoc = await getDoc(doc(db, "users", riderId));
         if (riderDoc.exists()) {
           const riderData = riderDoc.data();
+          riderName = riderData.fullName || riderData.name || 'Unknown User';
           updatedRiders[riderIndex] = {
             id: riderId,
-            name: riderData.fullName || riderData.name || 'Unknown User',
+            name: riderName,
             email: riderData.email || 'No email',
             paymentStatus: paymentStatus,
             subscriptionType: 'per_ride'
@@ -480,6 +506,7 @@ export const updateRiderBusPaymentStatus = async (riderId, busId, paymentStatus)
         };
       }
     } else {
+      riderName = currentRider.name || 'Unknown User';
       updatedRiders[riderIndex] = {
         ...currentRider,
         paymentStatus: paymentStatus
@@ -518,6 +545,9 @@ export const updateRiderBusPaymentStatus = async (riderId, busId, paymentStatus)
       });
     }
     
+    // Add notification for payment status update
+    addPaymentNotification(riderName, busName, paymentStatus);
+    
     return { success: true };
   } catch (error) {
     console.error("Error updating rider payment status:", error);
@@ -528,7 +558,7 @@ export const updateRiderBusPaymentStatus = async (riderId, busId, paymentStatus)
 // Remove a rider from a bus - sync both collections
 export const removeRiderFromBus = async (riderId, busId) => {
   try {
-    // Remove from bus collection
+    // Get bus and rider data for notifications
     const busDoc = await getDoc(doc(db, "buses", busId));
     
     if (!busDoc.exists()) {
@@ -536,7 +566,31 @@ export const removeRiderFromBus = async (riderId, busId) => {
     }
     
     const busData = busDoc.data();
+    const busName = busData.busName || 'Unknown Bus';
     const currentRiders = busData.currentRiders || [];
+    
+    // Get rider name before removal
+    let riderName = 'Unknown Rider';
+    const riderToRemove = currentRiders.find(rider => 
+      (typeof rider === 'object' ? rider.id : rider) === riderId
+    );
+    
+    if (riderToRemove) {
+      if (typeof riderToRemove === 'object') {
+        riderName = riderToRemove.name || 'Unknown User';
+      } else {
+        // If it's just an ID, try to get the name from the user document
+        try {
+          const riderDoc = await getDoc(doc(db, "users", riderId));
+          if (riderDoc.exists()) {
+            const riderData = riderDoc.data();
+            riderName = riderData.fullName || riderData.name || 'Unknown User';
+          }
+        } catch (error) {
+          console.error("Error fetching rider data:", error);
+        }
+      }
+    }
     
     // Remove rider from bus currentRiders
     const updatedRiders = currentRiders.filter(rider => 
@@ -564,6 +618,9 @@ export const removeRiderFromBus = async (riderId, busId) => {
         updatedAt: serverTimestamp()
       });
     }
+    
+    // Add notification for rider removal
+    addRiderRemovedNotification(riderName, busName);
     
     return { success: true };
   } catch (error) {

@@ -13,6 +13,10 @@ import {
 import { createUserWithEmailAndPassword } from "firebase/auth";
 import { secondaryAuth, db } from "../firebase/config";
 import { getBusById } from "./busService";
+import { 
+  addDriverNotification, 
+  NOTIFICATION_TYPES 
+} from './notificationService';
 
 // Comment out adminCredentials since it's never used
 // let adminCredentials = null;
@@ -82,6 +86,10 @@ export const createDriver = async (driverData) => {
       busAssignments: driverData.busAssignments || []
     });
     
+    // Add notification for driver creation
+    const driverName = driverDataWithoutPassword.name || driverDataWithoutPassword.fullName || 'Unknown Driver';
+    addDriverNotification(NOTIFICATION_TYPES.DRIVER_CREATED, driverName);
+    
     // Sign out from the secondary auth instance to clean up
     await secondaryAuth.signOut();
     
@@ -103,6 +111,10 @@ export const updateDriver = async (driverId, driverData) => {
       updatedAt: serverTimestamp()
     });
     
+    // Add notification for driver update
+    const driverName = driverData.name || driverData.fullName || 'Unknown Driver';
+    addDriverNotification(NOTIFICATION_TYPES.DRIVER_UPDATED, driverName);
+    
     return { success: true };
   } catch (error) {
     console.error("Error updating driver:", error);
@@ -113,12 +125,21 @@ export const updateDriver = async (driverId, driverData) => {
 // Delete a driver
 export const deleteDriver = async (driverId) => {
   try {
+    // Get driver data for notification before deletion
+    const driverDoc = await getDoc(doc(db, "users", driverId));
+    const driverName = driverDoc.exists() ? 
+      (driverDoc.data().name || driverDoc.data().fullName || 'Unknown Driver') : 
+      'Unknown Driver';
+    
     // In a real application, you might want to:
     // 1. Delete the Auth user (requires Firebase Admin SDK on backend)
     // 2. Reassign any buses assigned to this driver
     
     // Delete from Firestore
     await deleteDoc(doc(db, "users", driverId));
+    
+    // Add notification for driver deletion
+    addDriverNotification(NOTIFICATION_TYPES.DRIVER_DELETED, driverName);
     
     return { success: true };
   } catch (error) {

@@ -11,6 +11,11 @@ import {
   serverTimestamp
 } from "firebase/firestore";
 import { db } from "../firebase/config";
+import { 
+  addBusNotification, 
+  addDriverRemovedNotification,
+  NOTIFICATION_TYPES 
+} from './notificationService';
 
 // Completely rewritten getAllBuses function that preserves ALL database values
 export const getAllBuses = async () => {
@@ -139,6 +144,9 @@ export const createBus = async (busData) => {
       updatedAt: serverTimestamp()
     });
     
+    // Add notification for bus creation
+    addBusNotification(NOTIFICATION_TYPES.BUS_CREATED, busData.busName || 'Unknown Bus');
+    
     // If we have a driver assigned, update their busAssignments
     if (busData.driverId) {
       try {
@@ -186,6 +194,28 @@ export const createBus = async (busData) => {
 // Update an existing bus
 export const updateBus = async (busId, busData) => {
   try {
+    // Get the current bus data to check for driver changes
+    const currentBusDoc = await getDoc(doc(db, "buses", busId));
+    const currentBusData = currentBusDoc.exists() ? currentBusDoc.data() : {};
+    const currentDriverId = currentBusData.driverId;
+    const newDriverId = busData.driverId;
+    
+    // Check if driver is being removed
+    let removedDriverName = null;
+    if (currentDriverId && (!newDriverId || newDriverId === '')) {
+      // Driver is being removed - get the driver's name for notification
+      try {
+        const driverDoc = await getDoc(doc(db, "users", currentDriverId));
+        if (driverDoc.exists()) {
+          const driverData = driverDoc.data();
+          removedDriverName = driverData.name || driverData.fullName || 'Unknown Driver';
+        }
+      } catch (error) {
+        console.error("Error fetching driver data for removal notification:", error);
+        removedDriverName = 'Unknown Driver';
+      }
+    }
+    
     // Format working days as an object if it's an array
     let workingDays = busData.workingDays;
     if (busData.workingDays && Array.isArray(busData.workingDays)) {
@@ -218,6 +248,14 @@ export const updateBus = async (busId, busData) => {
     delete updateData.createdAt;
     
     await updateDoc(doc(db, "buses", busId), updateData);
+    
+    // Add notification for bus update
+    addBusNotification(NOTIFICATION_TYPES.BUS_UPDATED, busData.busName || 'Unknown Bus');
+    
+    // Handle driver removal notification
+    if (removedDriverName) {
+      addDriverRemovedNotification(removedDriverName, busData.busName || 'Unknown Bus');
+    }
     
     // If we have a driver assigned, update their busAssignments
     if (busData.driverId) {
@@ -261,7 +299,15 @@ export const updateBus = async (busId, busData) => {
 // Delete a bus
 export const deleteBus = async (busId) => {
   try {
+    // Get bus data for notification before deletion
+    const busDoc = await getDoc(doc(db, "buses", busId));
+    const busName = busDoc.exists() ? busDoc.data().busName : 'Unknown Bus';
+    
     await deleteDoc(doc(db, "buses", busId));
+    
+    // Add notification for bus deletion
+    addBusNotification(NOTIFICATION_TYPES.BUS_DELETED, busName);
+    
     return { success: true };
   } catch (error) {
     console.error("Error deleting bus:", error);
