@@ -323,178 +323,255 @@ const Dashboard = () => {
     fetchRecentActivities();
   }, []);
 
-    const fetchDashboardData = async () => {
-      setLoading(true);
-      setError(null);
+  const fetchDashboardData = async () => {
+    setLoading(true);
+    setError(null);
+  
+    try {
+      const [busesResult, driversResult, ridersResult] = await Promise.all([
+        getAllBuses(),
+        getAllDrivers(),
+        getAllRiders()
+      ]);
+
+    // Store buses for the map component
+    setBuses(busesResult.buses || []);
+
+    if (busesResult.error || driversResult.error || ridersResult.error) {
+      setError("Error fetching some dashboard data");
+      return;
+    }
+
+    // Calculate basic stats
+    const totalBuses = busesResult.buses?.length || 0;
+    const totalDrivers = driversResult.drivers?.length || 0;
     
-      try {
-        const [busesResult, driversResult, ridersResult] = await Promise.all([
-          getAllBuses(),
-          getAllDrivers(),
-          getAllRiders()
-        ]);
-
-      // Store buses for the map component
-      setBuses(busesResult.buses || []);
-
-      if (busesResult.error || driversResult.error || ridersResult.error) {
-        setError("Error fetching some dashboard data");
-        return;
-      }
-
-      // Calculate basic stats
-      const totalBuses = busesResult.buses?.length || 0;
-      const totalDrivers = driversResult.drivers?.length || 0;
-      const totalRiders = ridersResult.riders?.length || 0;
-      
-      // Calculate total unique locations
-      const locationSet = new Set();
-        if (busesResult.buses) {
-          busesResult.buses.forEach(bus => {
-            if (bus.locations && Array.isArray(bus.locations)) {
-              bus.locations.forEach(location => {
-                if (location.name) {
-                  locationSet.add(location.name);
-                }
-              });
+    // Calculate total unique locations
+    const locationSet = new Set();
+    if (busesResult.buses) {
+      busesResult.buses.forEach(bus => {
+        if (bus.locations && Array.isArray(bus.locations)) {
+          bus.locations.forEach(location => {
+            if (location.name) {
+              locationSet.add(location.name);
             }
+          });
+        }
+      });
+    }
+    const totalLocations = locationSet.size;
+
+    // Calculate real rider count and payment stats from currentRiders
+    let totalRiders = 0;
+    let paidCount = 0;
+    let pendingCount = 0;
+    let unpaidCount = 0;
+    const riderSet = new Set(); // To avoid counting duplicate riders
+
+    if (busesResult.buses) {
+      busesResult.buses.forEach(bus => {
+        if (bus.currentRiders && Array.isArray(bus.currentRiders)) {
+          bus.currentRiders.forEach(rider => {
+            if (rider && typeof rider === 'object') {
+              // Add to set to avoid counting duplicates
+              riderSet.add(rider.id);
+              
+              // Count payment statuses
+              const paymentStatus = rider.paymentStatus || 'unpaid';
+              switch (paymentStatus.toLowerCase()) {
+                case 'paid':
+                  paidCount++;
+                  break;
+                case 'pending':
+                  pendingCount++;
+                  break;
+                case 'unpaid':
+                case 'overdue':
+                default:
+                  unpaidCount++;
+                  break;
+              }
+            } else if (typeof rider === 'string') {
+              // Handle string IDs - count as unpaid by default
+              riderSet.add(rider);
+              unpaidCount++;
+            }
+          });
+        }
+      });
+    }
+
+    totalRiders = riderSet.size;
+
+    setStats({
+      totalBuses,
+      totalDrivers, 
+      totalRiders,
+      totalLocations
+    });
+
+    // Calculate bus status stats based on whether buses have drivers and riders
+    let activeBuses = 0;
+    let inactiveBuses = 0;
+    let maintenanceBuses = 0;
+
+    if (busesResult.buses) {
+      busesResult.buses.forEach(bus => {
+        const hasDriver = bus.driverId && bus.driverId.trim() !== '';
+        const hasRiders = bus.currentRiders && bus.currentRiders.length > 0;
+        
+        if (hasDriver && hasRiders) {
+          activeBuses++;
+        } else if (hasDriver || hasRiders) {
+          inactiveBuses++;
+        } else {
+          maintenanceBuses++;
+        }
+      });
+    }
+
+    setBusStatusStats({
+      active: activeBuses,
+      inactive: inactiveBuses,
+      maintenance: maintenanceBuses
+    });
+
+    // Set real payment stats
+    setPaymentStats({
+      paid: paidCount,
+      pending: pendingCount,
+      unpaid: unpaidCount
+    });
+
+    // Calculate monthly registrations from actual rider data
+    const monthlyData = [];
+    const now = new Date();
+    
+    for (let i = 5; i >= 0; i--) {
+      const monthDate = new Date(now.getFullYear(), now.getMonth() - i, 1);
+      const monthStart = new Date(monthDate.getFullYear(), monthDate.getMonth(), 1);
+      const monthEnd = new Date(monthDate.getFullYear(), monthDate.getMonth() + 1, 0);
+      
+      let count = 0;
+      if (ridersResult.riders) {
+        ridersResult.riders.forEach(rider => {
+          if (rider.createdAt) {
+            const createdAt = rider.createdAt?.toDate ? rider.createdAt.toDate() : new Date(rider.createdAt);
+            if (createdAt >= monthStart && createdAt <= monthEnd) {
+              count++;
+            }
+          }
         });
       }
-      const totalLocations = locationSet.size;
-
-      setStats({
-        totalBuses,
-        totalDrivers, 
-        totalRiders,
-        totalLocations
-      });
-
-      // Calculate bus status stats (simplified)
-      setBusStatusStats({
-        active: totalBuses,
-        inactive: 0,
-        maintenance: 0
-      });
-
-      // Calculate payment stats (simplified for demo)
-      const totalPayments = totalRiders * 2; // Assume 2 payments per rider
-      setPaymentStats({
-        paid: Math.floor(totalPayments * 0.7),
-        pending: Math.floor(totalPayments * 0.2),
-        unpaid: Math.floor(totalPayments * 0.1)
-      });
-
-      // Calculate monthly registrations
-        const monthlyData = [];
-        const now = new Date();
       
-        for (let i = 5; i >= 0; i--) {
-          const monthDate = new Date(now.getFullYear(), now.getMonth() - i, 1);
-          const monthStart = new Date(monthDate.getFullYear(), monthDate.getMonth(), 1);
-          const monthEnd = new Date(monthDate.getFullYear(), monthDate.getMonth() + 1, 0);
-          
-          let count = 0;
-          if (ridersResult.riders) {
-            ridersResult.riders.forEach(rider => {
-              const createdAt = rider.createdAt?.toDate ? rider.createdAt.toDate() : new Date(rider.createdAt);
-              if (createdAt >= monthStart && createdAt <= monthEnd) {
-                count++;
-              }
-            });
-          }
-          
-          monthlyData.push({
-            label: monthDate.toLocaleDateString('en-US', { month: 'short' }),
-            value: count
-          });
-        }
-      setMonthlyRegistrations(monthlyData);
+      monthlyData.push({
+        label: monthDate.toLocaleDateString('en-US', { month: 'short' }),
+        value: count
+      });
+    }
+    setMonthlyRegistrations(monthlyData);
 
-        // Calculate location distribution
-        const locationCounts = {};
-        if (busesResult.buses) {
-          busesResult.buses.forEach(bus => {
-            if (bus.locations && Array.isArray(bus.locations)) {
-              bus.locations.forEach(location => {
-                if (location.name) {
-                  locationCounts[location.name] = (locationCounts[location.name] || 0) + 1;
-                }
-              });
+    // Calculate location distribution from buses
+    const locationCounts = {};
+    if (busesResult.buses) {
+      busesResult.buses.forEach(bus => {
+        if (bus.locations && Array.isArray(bus.locations)) {
+          bus.locations.forEach(location => {
+            if (location.name) {
+              locationCounts[location.name] = (locationCounts[location.name] || 0) + 1;
             }
           });
         }
+      });
+    }
 
-        const locationDistData = Object.entries(locationCounts)
-          .sort(([,a], [,b]) => b - a)
-          .slice(0, 5)
-          .map(([name, count], index) => ({
-            label: name.length > 8 ? name.substring(0, 8) + '...' : name,
-            value: count,
-            color: [colors.primary.main, colors.secondary.main, colors.accent.main, colors.status.warning, colors.status.info][index]
-          }));
+    const locationDistData = Object.entries(locationCounts)
+      .sort(([,a], [,b]) => b - a)
+      .slice(0, 5)
+      .map(([name, count], index) => ({
+        label: name.length > 8 ? name.substring(0, 8) + '...' : name,
+        value: count,
+        color: [colors.primary.main, colors.secondary.main, colors.accent.main, colors.status.warning, colors.status.info][index]
+      }));
 
-        setLocationDistribution(locationDistData);
-        
-      } catch (error) {
-        console.error("Error fetching dashboard data:", error);
+    setLocationDistribution(locationDistData);
+      
+    } catch (error) {
+      console.error("Error fetching dashboard data:", error);
       setError("Failed to load dashboard data. Please try again later.");
-      } finally {
-        setLoading(false);
-      }
-    };
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const fetchRecentActivities = async () => {
     try {
-      // Simplified activity fetching
-      const activities = [
-        {
-          id: 1,
-          title: "New bus route created",
-          icon: "🚌",
-          createdAt: new Date(Date.now() - 2 * 60 * 60 * 1000), // 2 hours ago
-        },
-        {
-          id: 2,
-          title: "Driver assigned to route",
-          icon: "👨‍✈️",
-          createdAt: new Date(Date.now() - 4 * 60 * 60 * 1000), // 4 hours ago
-        },
-        {
-          id: 3,
-          title: "New rider registered",
-          icon: "👥",
-          createdAt: new Date(Date.now() - 8 * 60 * 60 * 1000), // 8 hours ago
-        }
-      ];
+      // Get recent activities from notifications in localStorage
+      const notifications = JSON.parse(localStorage.getItem('buscollege_notifications') || '[]');
+      
+      // Convert notifications to activities format
+      const recentActivities = notifications
+        .slice(0, 5) // Get last 5 notifications
+        .map(notification => ({
+          id: notification.id,
+          title: notification.message,
+          icon: getActivityIcon(notification.type),
+          createdAt: new Date(notification.time),
+          formattedTime: formatTimeAgo(new Date(notification.time))
+        }));
 
-      // Format timestamps
-      setActivities(activities.map(activity => {
-        const timestamp = activity.createdAt;
-        const now = new Date();
-        const diffMs = now - timestamp;
-        const diffSecs = Math.floor(diffMs / 1000);
-        const diffMins = Math.floor(diffSecs / 60);
-        const diffHours = Math.floor(diffMins / 60);
-        const diffDays = Math.floor(diffHours / 24);
-
-        let timeString;
-        if (diffSecs < 60) {
-          timeString = `${diffSecs} seconds ago`;
-        } else if (diffMins < 60) {
-          timeString = `${diffMins} ${diffMins === 1 ? 'minute' : 'minutes'} ago`;
-        } else if (diffHours < 24) {
-          timeString = `${diffHours} ${diffHours === 1 ? 'hour' : 'hours'} ago`;
-        } else {
-          timeString = `${diffDays} ${diffDays === 1 ? 'day' : 'days'} ago`;
-        }
-
-        return {
-          ...activity,
-          formattedTime: timeString
-        };
-      }));
+      setActivities(recentActivities);
     } catch (error) {
       console.error("Error fetching activities:", error);
+      
+      // Fallback to static activities if localStorage fails
+      const fallbackActivities = [
+        {
+          id: 1,
+          title: "System initialized",
+          icon: "🚀",
+          createdAt: new Date(Date.now() - 2 * 60 * 60 * 1000),
+          formattedTime: "2 hours ago"
+        }
+      ];
+      setActivities(fallbackActivities);
+    }
+  };
+
+  const getActivityIcon = (notificationType) => {
+    const iconMap = {
+      'bus_created': '🚌',
+      'bus_updated': '🔄',
+      'bus_deleted': '🗑️',
+      'rider_created': '👥',
+      'rider_updated': '✏️',
+      'rider_deleted': '👋',
+      'driver_created': '👨‍✈️',
+      'driver_updated': '🔧',
+      'driver_deleted': '❌',
+      'payment_updated': '💰',
+      'rider_removed_from_bus': '🚫',
+      'driver_removed_from_bus': '🚫'
+    };
+    return iconMap[notificationType] || '📝';
+  };
+
+  const formatTimeAgo = (date) => {
+    const now = new Date();
+    const diffMs = now - date;
+    const diffSecs = Math.floor(diffMs / 1000);
+    const diffMins = Math.floor(diffSecs / 60);
+    const diffHours = Math.floor(diffMins / 60);
+    const diffDays = Math.floor(diffHours / 24);
+
+    if (diffSecs < 60) {
+      return `${diffSecs} seconds ago`;
+    } else if (diffMins < 60) {
+      return `${diffMins} ${diffMins === 1 ? 'minute' : 'minutes'} ago`;
+    } else if (diffHours < 24) {
+      return `${diffHours} ${diffHours === 1 ? 'hour' : 'hours'} ago`;
+    } else {
+      return `${diffDays} ${diffDays === 1 ? 'day' : 'days'} ago`;
     }
   };
 
@@ -562,7 +639,7 @@ const Dashboard = () => {
             <h3 style={styles.title}>Total Riders</h3>
           </div>
           <div style={styles.value}>{stats.totalRiders}</div>
-          <p style={styles.subtitle}>Registered passengers</p>
+          <p style={styles.subtitle}>Active bus riders</p>
         </div>
 
         <div style={styles.card}>
@@ -575,13 +652,13 @@ const Dashboard = () => {
         </div>
       </div>
 
-      {/* NEW: Interactive Bus Routes Map */}
+      {/* Interactive Bus Routes Map */}
       <div style={{...styles.chartCard, marginBottom: spacing.xl}}>
         <h3 style={styles.sectionTitle}>🗺️ Interactive Bus Routes Map</h3>
         <BusRouteMap buses={buses} />
       </div>
 
-      {/* Existing charts... */}
+      {/* Charts */}
       <div style={styles.twoColumnGrid}>
         <div style={styles.chartCard}>
           <h3 style={styles.sectionTitle}>💰 Payment Status Distribution</h3>
